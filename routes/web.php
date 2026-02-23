@@ -117,15 +117,33 @@ Route::middleware('auth')->group(function () {
             */
             Route::middleware('permission:manage_santri')->group(function () {
 
+               
+                // 🔥 IMPORT ROUTES HARUS DI ATAS
+                Route::get('santri/import/{batch}',
+                    [\App\Http\Controllers\Tenant\SantriController::class, 'importPreviewShow']
+                )->name('santri.import.preview.show');
+            
+                Route::post('santri/import/preview',
+                    [\App\Http\Controllers\Tenant\SantriController::class, 'importPreview']
+                )->name('santri.import.preview');
+            
+                Route::post('santri/import/{batch}/commit',
+                    [\App\Http\Controllers\Tenant\SantriController::class, 'importCommit']
+                )->name('santri.import.commit');
+            
+                Route::get('santri/import',
+                    [\App\Http\Controllers\Tenant\SantriController::class, 'importForm']
+                )->name('santri.import.form');
+            
+                // 🔽 BARU RESOURCE DI BAWAH
                 Route::resource('santri',
                     \App\Http\Controllers\Tenant\SantriController::class
                 );
-
+            
                 Route::post('santri/{id}/restore',
                     [\App\Http\Controllers\Tenant\SantriController::class, 'restore']
                 )->name('santri.restore');
             });
-
 
 
             /*

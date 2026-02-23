@@ -1,16 +1,17 @@
 <?php
 
 namespace App\Http\Controllers\Tenant;
-use App\Http\Controllers\Controller;
-
-use App\Models\Santri;
-use App\Models\Wali;
-use App\Domains\Santri\DTO\CreateSantriData;
-use App\Domains\Santri\DTO\UpdateSantriData;
 use App\Domains\Santri\Actions\CreateSantriAction;
-use App\Domains\Santri\Actions\UpdateSantriAction;
 use App\Domains\Santri\Actions\DeleteSantriAction;
 use App\Domains\Santri\Actions\RestoreSantriAction;
+use App\Domains\Santri\Actions\UpdateSantriAction;
+use App\Domains\Santri\DTO\CreateSantriData;
+use App\Domains\Santri\DTO\UpdateSantriData;
+use App\Domains\Santri\Actions\ImportSantriPreviewAction;
+use App\Models\SantriImportBatch;
+use App\Http\Controllers\Controller;
+use App\Models\Santri;
+use App\Models\Wali;
 use Illuminate\Http\Request;
 
 class SantriController extends Controller
@@ -99,4 +100,33 @@ class SantriController extends Controller
 
         return back()->with('success', 'Santri berhasil direstore.');
     }
+
+    public function importPreview(Request $request, ImportSantriPreviewAction $action)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv,xls'
+        ]);
+
+        $batch = $action->execute($request->file('file'));
+
+        return redirect()
+            ->route('tenant.santri.import.preview.show', $batch->id);
+    }
+    public function importForm()
+    {
+        return view('tenant.santri.import-form');
+    }
+
+    public function importPreviewShow(SantriImportBatch $batch)
+    {
+        // Pastikan tenant tidak bisa akses batch pondok lain
+        if ($batch->pondok_id !== auth()->user()->pondok_id) {
+            abort(403);
+        }
+
+        $rows = $batch->rows()->orderBy('row_number')->paginate(20);
+
+        return view('tenant.santri.import-preview', compact('batch', 'rows'));
+    }
+
 }

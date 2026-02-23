@@ -6,20 +6,37 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('santri_import_batches', function (Blueprint $table) {
             $table->id();
+
+            $table->foreignId('pondok_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
+            $table->foreignId('uploaded_by')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->string('filename');
+
+            $table->integer('total_rows')->default(0);
+            $table->integer('valid_rows')->default(0);
+            $table->integer('invalid_rows')->default(0);
+
+            $table->enum('status', [
+                'preview',
+                'committed',
+                'failed'
+            ])->default('preview');
+
             $table->timestamps();
+
+            $table->index('pondok_id');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('santri_import_batches');
