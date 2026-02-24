@@ -34,6 +34,7 @@ class RoleController extends Controller
             'permissions' => 'array'
         ]);
 
+        // return $validated;
         $dto = CreateRoleData::fromArray($validated);
 
         $action->execute($dto);

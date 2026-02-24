@@ -10,6 +10,7 @@ use App\Domains\Tenant\Actions\UpdateTenantAction;
 use App\Domains\Tenant\Actions\ToggleTenantStatusAction;
 use App\Domains\Tenant\Actions\DeleteTenantAction;
 
+
 use App\Models\Pondok;
 
 class PondokController extends Controller
@@ -31,14 +32,21 @@ class PondokController extends Controller
             'name' => 'required|string',
             'address' => 'nullable|string',
             'phone' => 'nullable|string',
+            'logo' => 'nullable|image|max:2048',
             'admin_name' => 'required|string',
             'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|min:6',
         ]);
 
-        $dto = CreateTenantData::fromArray($validated);
+        // Tambahkan file logo ke array jika ada
+        if ($request->hasFile('logo')) {
+            $validated['logo'] = $request->file('logo');
+        } else {
+            $validated['logo'] = null;
+        }
 
-        $action->execute($dto);
+        $dto = CreateTenantData::fromArray($validated);
+        $pondok = $action->execute($dto);
 
         return redirect()
             ->route('superadmin.pondok.index')
@@ -56,9 +64,19 @@ class PondokController extends Controller
             'name' => 'required|string',
             'address' => 'nullable|string',
             'phone' => 'nullable|string',
+            'logo' => 'nullable|image|max:2048',
         ]);
 
+        // Tambahkan file logo ke array jika ada
+        if ($request->hasFile('logo')) {
+            $validated['logo'] = $request->file('logo');
+        } else {
+            $validated['logo'] = null;
+        }
+
+        $old = $pondok->toArray();
         $action->execute($pondok, $validated);
+        $pondok->refresh();
 
         return redirect()->route('superadmin.pondok.index')
             ->with('success', 'Pondok berhasil diperbarui.');
@@ -66,19 +84,19 @@ class PondokController extends Controller
 
     public function toggle(Pondok $pondok, ToggleTenantStatusAction $action)
     {
+        $old = $pondok->toArray();
         $action->execute($pondok);
+        $pondok->refresh();
 
         return back()->with('success', 'Status pondok diperbarui.');
     }
     
     public function destroy(Pondok $pondok, DeleteTenantAction $action)
     {
+        $old = $pondok->toArray();
         $action->execute($pondok);
-    
+
         return redirect()->route('superadmin.pondok.index')
             ->with('success', 'Pondok dihapus (soft delete).');
     }
-    
-
-
 }

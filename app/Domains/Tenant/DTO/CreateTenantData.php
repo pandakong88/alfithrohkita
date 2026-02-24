@@ -1,5 +1,8 @@
 <?php
+
 namespace App\Domains\Tenant\DTO;
+
+use Illuminate\Http\UploadedFile;
 
 class CreateTenantData
 {
@@ -10,6 +13,7 @@ class CreateTenantData
         public string $admin_name,
         public string $admin_email,
         public string $admin_password,
+        public ?UploadedFile $logo = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -21,6 +25,7 @@ class CreateTenantData
             admin_name: $data['admin_name'],
             admin_email: $data['admin_email'],
             admin_password: $data['admin_password'],
+            logo: $data['logo'] ?? null, // 🔥 WAJIB ditambahkan
         );
     }
 }
