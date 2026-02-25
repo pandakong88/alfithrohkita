@@ -23,102 +23,45 @@ class CreateSantriAction
             $user = Auth::user();
             $pondokId = $user->pondok_id;
 
-            // ==========================================
-            // 1️⃣ Tentukan wali
-            // ==========================================
-
-            $waliId = null;
-
-            // 🔹 Mode 1: Wali existing
+            // Validasi wali milik pondok
             if ($data->wali_id) {
-
-                $wali = Wali::where('id', $data->wali_id)
+                $waliValid = Wali::where('id', $data->wali_id)
                     ->where('pondok_id', $pondokId)
-                    ->first();
+                    ->exists();
 
-                if (!$wali) {
+                if (!$waliValid) {
                     throw ValidationException::withMessages([
-                        'wali_id' => 'Wali tidak valid untuk pondok ini.'
+                        'wali_id' => 'Wali tidak valid.'
                     ]);
                 }
-
-                $waliId = $wali->id;
             }
 
-            // 🔹 Mode 2: Buat wali baru
-            elseif ($data->wali_nama) {
-
-                if (!$data->wali_no_hp) {
-                    throw ValidationException::withMessages([
-                        'wali_no_hp' => 'Nomor HP wali wajib diisi.'
-                    ]);
-                }
-
-                $wali = Wali::create([
+            try {
+                $santri = Santri::create([
                     'pondok_id' => $pondokId,
-                    'nama' => $data->wali_nama,
-                    'no_hp' => $data->wali_no_hp,
-                    'alamat' => $data->wali_alamat,
-                    'pekerjaan' => $data->wali_pekerjaan,
+                    'wali_id' => $data->wali_id,
+                    'nis' => $data->nis,
+                    'nama_lengkap' => $data->nama_lengkap,
+                    'jenis_kelamin' => $data->jenis_kelamin,
+                    'tempat_lahir' => $data->tempat_lahir,
+                    'tanggal_lahir' => $data->tanggal_lahir,
+                    'alamat' => $data->alamat,
+                    'no_hp' => $data->no_hp,
+                    'tanggal_masuk' => $data->tanggal_masuk,
+                    'status' => 'active',
                     'created_by' => $user->id,
                 ]);
-
-                $waliId = $wali->id;
-            }
-
-            else {
-                throw ValidationException::withMessages([
-                    'wali' => 'Pilih wali atau buat wali baru.'
-                ]);
-            }
-
-            // ==========================================
-            // 2️⃣ Validasi unique NIS per pondok
-            // ==========================================
-
-            $exists = Santri::where('pondok_id', $pondokId)
-                ->where('nis', $data->nis)
-                ->exists();
-
-            if ($exists) {
+            } catch (\Illuminate\Database\QueryException $e) {
                 throw ValidationException::withMessages([
                     'nis' => 'NIS sudah digunakan di pondok ini.'
                 ]);
             }
 
-            // ==========================================
-            // 3️⃣ Create Santri
-            // ==========================================
-
-            $santri = Santri::create([
-                'pondok_id'     => $pondokId,
-                'wali_id'       => $waliId,
-                'nis'           => $data->nis,
-                'nama_lengkap'  => $data->nama_lengkap,
-                'jenis_kelamin' => $data->jenis_kelamin,
-                'tempat_lahir'  => $data->tempat_lahir,
-                'tanggal_lahir' => $data->tanggal_lahir,
-                'alamat'        => $data->alamat,
-                'no_hp'         => $data->no_hp,
-                'tanggal_masuk' => $data->tanggal_masuk,
-                'status'        => 'active',
-                'created_by'    => $user->id,
-            ]);
-
-            // ==========================================
-            // 4️⃣ Log activity
-            // ==========================================
-
             $this->logActivity->execute(
                 event: 'santri.created',
                 subject: $santri,
-                description: 'Membuat data santri baru',
-                oldValues: null,
-                newValues: $santri->toArray(),
-                meta: [
-                    'ip' => request()->ip(),
-                    'user_agent' => request()->userAgent(),
-                ]
+                description: 'Membuat santri baru',
+                newValues: $santri->toArray()
             );
 
             return $santri;

@@ -7,3 +7,7 @@
 <script src="{{ asset('kaiadmin/assets/js/plugin/sweetalert/sweetalert.min.js') }}"></script>
 
 <script src="{{ asset('kaiadmin/assets/js/kaiadmin.min.js') }}"></script>
+
+
+<script src="{{ asset('kaiadmin/assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js') }}"></script>
+<script src="{{ asset('kaiadmin/assets/js/plugin/select2/select2.full.min.js') }}"></script>

@@ -22,6 +22,12 @@ class SantriImportBatch extends Model
         'status',
     ];
 
+    protected $casts = [
+        'total_rows' => 'integer',
+        'valid_rows' => 'integer',
+        'invalid_rows' => 'integer',
+    ];
+
     public function rows()
     {
         return $this->hasMany(SantriImportRow::class, 'batch_id');

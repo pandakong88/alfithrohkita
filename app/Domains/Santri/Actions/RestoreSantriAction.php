@@ -4,7 +4,6 @@ namespace App\Domains\Santri\Actions;
 
 use App\Models\Santri;
 use App\Domains\Shared\Actions\LogActivityAction;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class RestoreSantriAction
@@ -13,31 +12,17 @@ class RestoreSantriAction
         protected LogActivityAction $logActivity
     ) {}
 
-    public function execute(Santri $santri): Santri
+    public function execute(Santri $santri): void
     {
-        return DB::transaction(function () use ($santri) {
-
-            $user = Auth::user();
-
-            if ($santri->pondok_id !== $user->pondok_id) {
-                abort(403);
-            }
+        DB::transaction(function () use ($santri) {
 
             $santri->restore();
 
             $this->logActivity->execute(
                 event: 'santri.restored',
                 subject: $santri,
-                description: 'Restore data santri',
-                oldValues: null,
-                newValues: $santri->fresh()->toArray(),
-                meta: [
-                    'ip' => request()->ip(),
-                    'user_agent' => request()->userAgent(),
-                ]
+                description: 'Merestore santri'
             );
-
-            return $santri->fresh();
         });
     }
 }

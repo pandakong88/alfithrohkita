@@ -64,12 +64,9 @@ class Santri extends Model
 
     public function scopeSearch($query, $search)
     {
-        return $query->where('nama_lengkap', 'like', "%{$search}%")
-                     ->orWhere('nis', 'like', "%{$search}%");
-    }
-
-    public function scopeStatus($query, $status)
-    {
-        return $query->where('status', $status);
+        return $query->where(function ($q) use ($search) {
+            $q->where('nama_lengkap', 'like', "%{$search}%")
+            ->orWhere('nis', 'like', "%{$search}%");
+        });
     }
 }

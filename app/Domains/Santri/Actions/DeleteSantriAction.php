@@ -4,7 +4,6 @@ namespace App\Domains\Santri\Actions;
 
 use App\Models\Santri;
 use App\Domains\Shared\Actions\LogActivityAction;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DeleteSantriAction
@@ -17,12 +16,6 @@ class DeleteSantriAction
     {
         DB::transaction(function () use ($santri) {
 
-            $user = Auth::user();
-
-            if ($santri->pondok_id !== $user->pondok_id) {
-                abort(403);
-            }
-
             $oldValues = $santri->toArray();
 
             $santri->delete();
@@ -30,13 +23,8 @@ class DeleteSantriAction
             $this->logActivity->execute(
                 event: 'santri.deleted',
                 subject: $santri,
-                description: 'Menghapus (soft delete) santri',
-                oldValues: $oldValues,
-                newValues: null,
-                meta: [
-                    'ip' => request()->ip(),
-                    'user_agent' => request()->userAgent(),
-                ]
+                description: 'Menghapus santri',
+                oldValues: $oldValues
             );
         });
     }

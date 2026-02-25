@@ -23,67 +23,50 @@ class UpdateSantriAction
             $user = Auth::user();
             $pondokId = $user->pondok_id;
 
-            // 1️⃣ Pastikan santri milik tenant
-            if ($santri->pondok_id !== $pondokId) {
-                abort(403);
+            if ($data->wali_id) {
+                $waliValid = Wali::where('id', $data->wali_id)
+                    ->where('pondok_id', $pondokId)
+                    ->exists();
+
+                if (!$waliValid) {
+                    throw ValidationException::withMessages([
+                        'wali_id' => 'Wali tidak valid.'
+                    ]);
+                }
             }
 
-            // 2️⃣ Validasi wali milik tenant
-            $wali = Wali::where('id', $data->wali_id)
-                ->where('pondok_id', $pondokId)
-                ->first();
+            $oldValues = $santri->toArray();
 
-            if (!$wali) {
+            try {
+                $santri->update([
+                    'nis' => $data->nis,
+                    'nama_lengkap' => $data->nama_lengkap,
+                    'jenis_kelamin' => $data->jenis_kelamin,
+                    'tempat_lahir' => $data->tempat_lahir,
+                    'tanggal_lahir' => $data->tanggal_lahir,
+                    'alamat' => $data->alamat,
+                    'no_hp' => $data->no_hp,
+                    'status' => $data->status,
+                    'tanggal_masuk' => $data->tanggal_masuk,
+                    'tanggal_keluar' => $data->tanggal_keluar,
+                    'wali_id' => $data->wali_id,
+                    'updated_by' => $user->id,
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
                 throw ValidationException::withMessages([
-                    'wali_id' => 'Wali tidak valid untuk pondok ini.'
+                    'nis' => 'NIS sudah digunakan.'
                 ]);
             }
 
-            // 3️⃣ Validasi unique NIS (kecuali dirinya)
-            $exists = Santri::where('pondok_id', $pondokId)
-                ->where('nis', $data->nis)
-                ->where('id', '!=', $santri->id)
-                ->exists();
-
-            if ($exists) {
-                throw ValidationException::withMessages([
-                    'nis' => 'NIS sudah digunakan di pondok ini.'
-                ]);
-            }
-
-            // 4️⃣ Snapshot lama
-            $oldValues = $santri->getOriginal();
-
-            // 5️⃣ Update
-            $santri->update([
-                'wali_id'       => $data->wali_id,
-                'nis'           => $data->nis,
-                'nama_lengkap'  => $data->nama_lengkap,
-                'jenis_kelamin' => $data->jenis_kelamin,
-                'tempat_lahir'  => $data->tempat_lahir,
-                'tanggal_lahir' => $data->tanggal_lahir,
-                'alamat'        => $data->alamat,
-                'no_hp'         => $data->no_hp,
-                'status'        => $data->status,
-                'tanggal_masuk' => $data->tanggal_masuk,
-                'tanggal_keluar'=> $data->tanggal_keluar,
-                'updated_by'    => $user->id,
-            ]);
-
-            // 6️⃣ Log activity
             $this->logActivity->execute(
                 event: 'santri.updated',
                 subject: $santri,
-                description: 'Memperbarui data santri',
+                description: 'Memperbarui santri',
                 oldValues: $oldValues,
-                newValues: $santri->fresh()->toArray(),
-                meta: [
-                    'ip' => request()->ip(),
-                    'user_agent' => request()->userAgent(),
-                ]
+                newValues: $santri->fresh()->toArray()
             );
 
-            return $santri->fresh();
+            return $santri;
         });
     }
 }

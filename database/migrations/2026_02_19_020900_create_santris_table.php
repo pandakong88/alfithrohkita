@@ -19,10 +19,11 @@ return new class extends Migration
                   ->constrained()
                   ->cascadeOnDelete();
         
-            // Relasi wali
+            // Relasi wali (nullable supaya fleksibel)
             $table->foreignId('wali_id')
+                  ->nullable()
                   ->constrained('walis')
-                  ->restrictOnDelete();
+                  ->nullOnDelete();
         
             // Identitas utama
             $table->string('nis');
@@ -60,11 +61,18 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
         
-            // Constraint penting SaaS
+            /*
+            |--------------------------------------------------------------------------
+            | Constraint Penting SaaS
+            |--------------------------------------------------------------------------
+            */
+        
+            // NIS unik per pondok
             $table->unique(['pondok_id', 'nis']);
         
             // Index performa
             $table->index(['pondok_id', 'status']);
+            $table->index(['pondok_id', 'nama_lengkap']);
         });
         
     }

@@ -10,30 +10,30 @@ return new class extends Migration
     {
         Schema::create('santri_import_batches', function (Blueprint $table) {
             $table->id();
-
+        
             $table->foreignId('pondok_id')
-                ->constrained()
-                ->cascadeOnDelete();
-
+                  ->constrained()
+                  ->cascadeOnDelete();
+        
             $table->foreignId('uploaded_by')
-                ->constrained('users')
-                ->cascadeOnDelete();
-
+                  ->constrained('users')
+                  ->cascadeOnDelete();
+        
             $table->string('filename');
-
+        
             $table->integer('total_rows')->default(0);
             $table->integer('valid_rows')->default(0);
             $table->integer('invalid_rows')->default(0);
-
+        
             $table->enum('status', [
                 'preview',
                 'committed',
                 'failed'
             ])->default('preview');
-
+        
             $table->timestamps();
-
-            $table->index('pondok_id');
+        
+            $table->index(['pondok_id', 'status']);
         });
     }
 

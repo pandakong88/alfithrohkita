@@ -62,10 +62,6 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('kaiadmin/assets/js/core/jquery-3.7.1.min.js') }}"></script>
-<script src="{{ asset('kaiadmin/assets/js/plugin/datatables/datatables.min.js') }}"></script>
-<script src="{{ asset('kaiadmin/assets/js/plugin/sweetalert/sweetalert.min.js') }}"></script>
-<script src="{{ asset('kaiadmin/assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js') }}"></script>
 <script>
     $(document).ready(function() {
         $('#datatable-role').DataTable({

@@ -12,13 +12,8 @@ class RestoreUserAction
         protected LogActivityAction $logger
     ) {}
 
-    public function execute(int $userId): User
+    public function execute(User $user): User
     {
-        $user = User::onlyTrashed()
-            ->where('pondok_id', auth()->user()->pondok_id)
-            ->where('id', $userId)
-            ->firstOrFail();
-
         DB::transaction(function () use ($user) {
 
             $user->restore();

@@ -30,6 +30,10 @@ class Wali extends Model
     |--------------------------------------------------------------------------
     */
 
+    public function pondok()
+    {
+        return $this->belongsTo(Pondok::class);
+    }
     public function santris()
     {
         return $this->hasMany(Santri::class);
@@ -53,7 +57,9 @@ class Wali extends Model
 
     public function scopeSearch($query, $search)
     {
-        return $query->where('nama', 'like', "%{$search}%")
-                     ->orWhere('no_hp', 'like', "%{$search}%");
+        return $query->where(function ($q) use ($search) {
+            $q->where('nama', 'like', "%{$search}%")
+              ->orWhere('no_hp', 'like', "%{$search}%");
+        });
     }
 }

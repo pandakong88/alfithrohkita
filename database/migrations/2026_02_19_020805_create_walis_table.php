@@ -22,7 +22,7 @@ return new class extends Migration
             // Data utama
             $table->string('nama');
             $table->string('nik')->nullable();
-            $table->string('no_hp')->index();
+            $table->string('no_hp')->nullable();
             $table->text('alamat')->nullable();
             $table->string('pekerjaan')->nullable();
         
@@ -40,7 +40,18 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
         
-            // Index penting
+            /*
+            |--------------------------------------------------------------------------
+            | Constraint Penting Multi-Tenant
+            |--------------------------------------------------------------------------
+            */
+        
+            // 1 wali tidak boleh dobel dalam 1 pondok
+            $table->unique(['pondok_id', 'no_hp']);
+        
+            // Optional kalau NIK dianggap unik
+            // $table->unique(['pondok_id', 'nik']);
+        
             $table->index('pondok_id');
         });
         
