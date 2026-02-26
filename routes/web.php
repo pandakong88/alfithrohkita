@@ -12,6 +12,13 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+Route::get('pedoman-santri', 
+    [\App\Http\Controllers\Public\SantriHandbookController::class, 'index']
+)->name('public.handbook.index');
+
+Route::get('pedoman-santri/download/{handbook}', 
+    [\App\Http\Controllers\Public\SantriHandbookController::class, 'download']
+)->name('public.handbook.download');
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +54,8 @@ Route::middleware('auth')->group(function () {
         ->name('superadmin.')
         ->group(function () {
 
+       
+
             // Dashboard
             Route::get('/dashboard',
                 [\App\Http\Controllers\SuperAdmin\DashboardController::class, 'index']
@@ -79,6 +88,10 @@ Route::middleware('auth')->group(function () {
                 [\App\Http\Controllers\Tenant\DashboardController::class, 'index']
             )->name('dashboard');
 
+                 // ===================GABUT===================
+            Route::resource('handbook', 
+                 \App\Http\Controllers\Tenant\SantriHandbookController::class
+             )->names('santri.handbook');
 
             /*
             |--------------------------------------------------------------------------
@@ -120,14 +133,14 @@ Route::middleware('auth')->group(function () {
 
                 Route::get('santri/import',
                     [\App\Http\Controllers\Tenant\SantriController::class, 'importForm']
-                )->name('santri.import.form');
+                )->name('santri.import');
 
                 Route::post('santri/import/preview',
-                    [\App\Http\Controllers\Tenant\SantriController::class, 'importPreview']
+                    [\App\Http\Controllers\Tenant\SantriController::class, 'previewImport']
                 )->name('santri.import.preview');
 
-                Route::get('santri/import/{batch}',
-                    [\App\Http\Controllers\Tenant\SantriController::class, 'importPreviewShow']
+                Route::get('santri/import/{batch}/preview',
+                    [\App\Http\Controllers\Tenant\SantriController::class, 'showPreview']
                 )->whereNumber('batch')
                 ->name('santri.import.preview.show');
 
@@ -136,6 +149,34 @@ Route::middleware('auth')->group(function () {
                 )->whereNumber('batch')
                 ->name('santri.import.commit');
 
+                Route::get('santri/import/history',
+                    [\App\Http\Controllers\Tenant\SantriController::class, 'importHistory']
+                )->name('santri.import.history');
+
+
+                Route::get('santri/snapshot/import',
+                    [\App\Http\Controllers\Tenant\SantriSnapshotController::class, 'importForm']
+                )->name('santri.snapshot.import');
+
+                Route::post('santri/snapshot/preview',
+                    [\App\Http\Controllers\Tenant\SantriSnapshotController::class, 'preview']
+                )->name('santri.snapshot.preview');
+
+                Route::post('santri/snapshot/{batch}/commit',
+                    [\App\Http\Controllers\Tenant\SantriSnapshotController::class, 'commit']
+                )->name('santri.snapshot.commit');
+                
+                Route::get('santri/snapshot/{batch}/preview',
+                    [\App\Http\Controllers\Tenant\SantriSnapshotController::class, 'showPreview']
+                )->name('santri.snapshot.preview.show');
+
+                Route::post('santri/snapshot/{batch}/commit',
+                    [\App\Http\Controllers\Tenant\SantriSnapshotController::class, 'commit']
+                )->name('santri.snapshot.commit');
+
+
+
+                
 
                 // ================= CRUD =================
 

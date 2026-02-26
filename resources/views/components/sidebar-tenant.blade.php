@@ -26,12 +26,54 @@
                     <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
                     <h4 class="text-section">Manajemen Data</h4>
                 </li>
-
-                <li class="nav-item {{ request()->routeIs('tenant.santri.*') ? 'active' : '' }}">
-                    <a href="{{ route('tenant.santri.index') }}">
+                <li class="nav-item 
+                    {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'active submenu' : '' }}">
+                
+                    <a data-bs-toggle="collapse" href="#menuSantri"
+                    class="{{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? '' : 'collapsed' }}"
+                    aria-expanded="{{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'true' : 'false' }}">
+                
                         <i class="fas fa-user-graduate"></i>
                         <p>Data Santri</p>
+                        <span class="caret"></span>
                     </a>
+                
+                    <div class="collapse 
+                        {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'show' : '' }}"
+                        id="menuSantri">
+                
+                        <ul class="nav nav-collapse">
+                
+                            {{-- Daftar Santri --}}
+                            <li class="{{ request()->routeIs('tenant.santri.index') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.santri.index') }}">
+                                    <span class="sub-item">Daftar Santri</span>
+                                </a>
+                            </li>
+                
+                            {{-- Import Santri --}}
+                            <li class="{{ request()->routeIs('tenant.santri.import') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.santri.import') }}">
+                                    <span class="sub-item">Import Santri</span>
+                                </a>
+                            </li>
+                
+                            {{-- Riwayat Import --}}
+                            <li class="{{ request()->routeIs('tenant.santri.import.history') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.santri.import.history') }}">
+                                    <span class="sub-item">Riwayat Import</span>
+                                </a>
+                            </li>
+                
+                            {{-- Snapshot --}}
+                            <li class="{{ request()->routeIs('tenant.santri.snapshot.*') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.santri.snapshot.import') }}">
+                                    <span class="sub-item">Snapshot Santri</span>
+                                </a>
+                            </li>
+                
+                        </ul>
+                    </div>
                 </li>
 
                 <li class="nav-item {{ request()->routeIs('tenant.wali.*') ? 'active' : '' }}">

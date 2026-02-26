@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use App\Domains\Santri\Actions\CreateSantriAction;
+use App\Domains\Santri\Actions\DeleteSantriAction;
+use App\Domains\Santri\Actions\RestoreSantriAction;
+use App\Domains\Santri\Actions\UpdateSantriAction;
+use App\Domains\Santri\DTO\CreateSantriData;
+use App\Domains\Santri\DTO\UpdateSantriData;
 use App\Http\Controllers\Controller;
+use App\Imports\SantriImport;
 use App\Models\Santri;
+use App\Models\SantriImportBatch;
 use App\Models\Wali;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-
-use App\Domains\Santri\DTO\CreateSantriData;
-use App\Domains\Santri\DTO\UpdateSantriData;
-use App\Domains\Santri\Actions\CreateSantriAction;
-use App\Domains\Santri\Actions\UpdateSantriAction;
-use App\Domains\Santri\Actions\DeleteSantriAction;
-use App\Domains\Santri\Actions\RestoreSantriAction;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SantriController extends Controller
 {
@@ -123,5 +125,69 @@ class SantriController extends Controller
         $action->execute($santri);
 
         return back()->with('success', 'Santri berhasil direstore.');
+    }
+
+
+    public function importForm()
+    {
+        return view('tenant.santri.import');
+    }
+
+    public function previewImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv'
+        ]);
+
+        $batch = app(\App\Domains\Santri\Actions\ImportSantriPreviewAction::class)
+                    ->execute($request->file('file'));
+
+        return redirect()->route(
+            'tenant.santri.import.preview.show',
+            $batch->id
+        );
+    }
+    
+    public function showPreview(SantriImportBatch $batch)
+    {
+        $batch->load('rows');
+
+        return view('tenant.santri.preview', compact('batch'));
+    }
+    
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv'
+        ]);
+
+        Excel::queueImport(
+            new SantriImport(
+                auth()->user()->pondok_id,
+                auth()->id()
+            ),
+            $request->file('file')
+        );
+
+        return back()->with('success', 'Import sedang diproses di background.');
+    }
+
+    public function importCommit(SantriImportBatch $batch)
+    {
+        app(\App\Domains\Santri\Actions\CommitSantriImportAction::class)
+            ->execute($batch);
+
+        return redirect()
+            ->route('tenant.santri.index')
+            ->with('success', 'Batch berhasil disimpan ke database.');
+    }
+
+    public function importHistory()
+    {
+        $batches = SantriImportBatch::with(['uploader', 'committer'])
+            ->latest()
+            ->get();
+
+        return view('tenant.santri.import-history', compact('batches'));
     }
 }

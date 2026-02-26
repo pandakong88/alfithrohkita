@@ -47,7 +47,7 @@ return new class extends Migration
             */
         
             // 1 wali tidak boleh dobel dalam 1 pondok
-            $table->unique(['pondok_id', 'no_hp']);
+            $table->unique(['pondok_id', 'no_hp' ,'nik']);
         
             // Optional kalau NIK dianggap unik
             // $table->unique(['pondok_id', 'nik']);

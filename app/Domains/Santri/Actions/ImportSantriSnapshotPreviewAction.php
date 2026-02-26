@@ -3,89 +3,82 @@
 namespace App\Domains\Santri\Actions;
 
 use App\Models\Santri;
-use App\Models\SantriImportBatch;
-use App\Models\SantriImportRow;
+use App\Models\SantriSnapshotBatch;
+use App\Models\SantriSnapshotRow;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
-class ImportSantriPreviewAction
+class ImportSantriSnapshotPreviewAction
 {
-    public function execute($file): SantriImportBatch
+    public function execute($file, $snapshotDate): SantriSnapshotBatch
     {
-        return DB::transaction(function () use ($file) {
+        return DB::transaction(function () use ($file, $snapshotDate) {
 
             $user = Auth::user();
             $pondokId = $user->pondok_id;
 
             // 1️⃣ Buat batch
-            $batch = SantriImportBatch::create([
-                'pondok_id'   => $pondokId,
-                'uploaded_by' => $user->id,
-                'filename'    => $file->getClientOriginalName(),
-                'status'      => 'preview',
+            $batch = SantriSnapshotBatch::create([
+                'pondok_id'    => $pondokId,
+                'uploaded_by'  => $user->id,
+                'snapshot_date'=> $snapshotDate,
+                'filename'     => $file->getClientOriginalName(),
+                'status'       => 'preview',
             ]);
 
-            // 2️⃣ Ambil data Excel
             $rows = Excel::toCollection(null, $file)->first();
 
             $total = 0;
             $valid = 0;
             $invalid = 0;
 
-            // 🔥 Skip header
             foreach ($rows->skip(1) as $index => $row) {
 
                 $total++;
-                $rowNumber = $index + 2; // +2 karena skip header
+                $rowNumber = $index + 2;
 
-                $status = strtolower(trim($row[3] ?? 'active'));
+                $status = strtolower(trim($row[1] ?? ''));
 
-                // Normalisasi status
-                $allowedStatus = ['active', 'nonaktif', 'lulus', 'keluar'];
-
+                // normalisasi
                 if ($status === 'inactive') {
                     $status = 'nonaktif';
                 }
 
+                $allowedStatus = ['active','nonaktif','lulus','keluar'];
+
                 $payload = [
-                    'nis'           => $row[0] ?? null,
-                    'nama_lengkap'  => $row[1] ?? null,
-                    'jenis_kelamin' => $row[2] ?? null,
-                    'status'        => $status,
+                    'nis'     => $row[0] ?? null,
+                    'status'  => $status,
+                    'kelas'   => $row[2] ?? null,
+                    'catatan' => $row[3] ?? null,
                 ];
 
                 $errors = [];
 
-                // =====================
-                // VALIDASI SANTRI
-                // =====================
+                // ====================
+                // VALIDASI
+                // ====================
 
                 if (!$payload['nis']) {
                     $errors[] = 'NIS wajib diisi.';
-                }
-
-                if (!$payload['nama_lengkap']) {
-                    $errors[] = 'Nama wajib diisi.';
-                }
-
-                if (!in_array($payload['jenis_kelamin'], ['L', 'P'])) {
-                    $errors[] = 'Jenis kelamin harus L atau P.';
                 }
 
                 if (!in_array($payload['status'], $allowedStatus)) {
                     $errors[] = 'Status tidak valid.';
                 }
 
-                // Cek apakah NIS sudah ada (untuk info mode saja)
-                $exists = false;
+                // cek santri ada atau tidak
+                $santri = null;
                 if ($payload['nis']) {
-                    $exists = Santri::where('pondok_id', $pondokId)
+                    $santri = Santri::where('pondok_id', $pondokId)
                         ->where('nis', $payload['nis'])
-                        ->exists();
-                }
+                        ->first();
 
-                $payload['mode'] = $exists ? 'update' : 'insert';
+                    if (!$santri) {
+                        $errors[] = 'Santri tidak ditemukan.';
+                    }
+                }
 
                 $isValid = empty($errors);
 
@@ -95,7 +88,7 @@ class ImportSantriPreviewAction
                     $invalid++;
                 }
 
-                SantriImportRow::create([
+                SantriSnapshotRow::create([
                     'batch_id'   => $batch->id,
                     'row_number' => $rowNumber,
                     'payload'    => $payload,
@@ -104,7 +97,6 @@ class ImportSantriPreviewAction
                 ]);
             }
 
-            // 3️⃣ Update summary
             $batch->update([
                 'total_rows'   => $total,
                 'valid_rows'   => $valid,

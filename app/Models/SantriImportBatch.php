@@ -20,6 +20,8 @@ class SantriImportBatch extends Model
         'valid_rows',
         'invalid_rows',
         'status',
+        'committed_by',
+        'committed_at',
     ];
 
     protected $casts = [
@@ -37,4 +39,11 @@ class SantriImportBatch extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'uploaded_by');
     }
+
+    public function committer()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'committed_by');
+    }
+
+    
 }
