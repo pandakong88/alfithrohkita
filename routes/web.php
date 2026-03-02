@@ -20,6 +20,9 @@ Route::get('pedoman-santri/download/{handbook}',
     [\App\Http\Controllers\Public\SantriHandbookController::class, 'download']
 )->name('public.handbook.download');
 
+Route::get('/preview-pdf/{id}', 
+    [\App\Http\Controllers\Public\SantriHandbookController::class, 'preview']
+)->name('handbook.preview');
 /*
 |--------------------------------------------------------------------------
 | Authentication Routes

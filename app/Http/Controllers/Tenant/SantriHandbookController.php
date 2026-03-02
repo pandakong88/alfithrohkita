@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\SantriHandbook;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 
 class SantriHandbookController extends Controller
 {
@@ -38,11 +38,21 @@ class SantriHandbookController extends Controller
             'file' => 'required|mimes:pdf|max:10240',
         ]);
 
-        $path = $request->file('file')
-            ->store('handbooks');
+        // 🔥 Upload ke PUBLIC /handbooks
+        $destination = public_path('handbooks');
+
+        if (!file_exists($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $filename = Str::random(40) . '.' .
+            $request->file('file')->getClientOriginalExtension();
+
+        $request->file('file')->move($destination, $filename);
+
+        $path = 'handbooks/' . $filename;
 
         if ($request->status === 'published') {
-            // auto archive versi lain
             SantriHandbook::where('pondok_id', auth()->user()->pondok_id)
                 ->where('status', 'published')
                 ->update(['status' => 'archived']);
@@ -91,11 +101,24 @@ class SantriHandbookController extends Controller
                 ->update(['status' => 'archived']);
         }
 
+        // 🔥 Jika upload file baru
         if ($request->hasFile('file')) {
-            Storage::delete($handbook->file_path);
 
-            $handbook->file_path = $request->file('file')
-                ->store('handbooks');
+            // Hapus file lama
+            $oldPath = public_path($handbook->file_path);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+
+            // Upload file baru
+            $destination = public_path('handbooks');
+
+            $filename = Str::random(40) . '.' .
+                $request->file('file')->getClientOriginalExtension();
+
+            $request->file('file')->move($destination, $filename);
+
+            $handbook->file_path = 'handbooks/' . $filename;
         }
 
         $handbook->update([
@@ -112,7 +135,13 @@ class SantriHandbookController extends Controller
 
     public function destroy(SantriHandbook $handbook)
     {
-        Storage::delete($handbook->file_path);
+        // 🔥 Hapus file fisik
+        $filePath = public_path($handbook->file_path);
+
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+
         $handbook->delete();
 
         return back()->with('success', 'Buku pedoman dihapus.');
