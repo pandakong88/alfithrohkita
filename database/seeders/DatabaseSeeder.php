@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             WaliSeeder::class,
             SantriSeeder::class,
+            SantriHandbookSeeder::class,
         ]);
     }
 }

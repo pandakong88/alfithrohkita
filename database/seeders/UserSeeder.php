@@ -24,7 +24,7 @@ class UserSeeder extends Seeder
 
         // Admin Pondok ID 3
         $admin = User::firstOrCreate(
-            ['email' => 'elvith@gmail.com'],
+            ['email' => 'arjunanda@gmail.com'],
             [
                 'name' => 'Admin Al-Fitroh',
                 'password' => Hash::make('password'),
