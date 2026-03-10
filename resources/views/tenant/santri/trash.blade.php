@@ -108,7 +108,9 @@
 @endsection
 
 @push('scripts')
+@push('scripts')
 <script>
+    // 1. Fungsi untuk Modal Konfirmasi (Tetap sama)
     function confirmAction(type, id, nama) {
         let form = $('#formActionTrash');
         let method = $('#methodField');
@@ -117,29 +119,46 @@
         let title = $('#modalTitle');
         let msg = $('#modalMessage');
         
-        // Reset Class
         btn.removeClass('btn-danger btn-success');
 
         if (type === 'restore') {
-            // Setup Modal untuk Restore
             title.text('Pulihkan Santri?');
             msg.html('Data <b>' + nama + '</b> akan dikembalikan ke daftar santri aktif.');
             icon.html('<i class="fas fa-undo text-success fa-3x"></i>');
             btn.addClass('btn-success').text('Ya, Pulihkan');
             method.val('PATCH');
-            form.attr('action', "{{ url('tenant/santri') }}/" + id + "/restore");
-            
+            form.attr('action', "{{ url('dashboard/santri') }}/" + id + "/restore");
         } else if (type === 'force-delete') {
-            // Setup Modal untuk Force Delete
             title.text('Hapus Permanen?');
-            msg.html('Data <b>' + nama + '</b> akan dihapus selamanya dan tidak bisa dikembalikan!');
+            msg.html('Data <b>' + nama + '</b> akan dihapus selamanya!');
             icon.html('<i class="fas fa-exclamation-triangle text-danger fa-3x"></i>');
             btn.addClass('btn-danger').text('Ya, Hapus Selamanya');
             method.val('DELETE');
-            form.attr('action', "{{ url('tenant/santri') }}/" + id + "/force-delete");
+            form.attr('action', "{{ url('dashboard/santri') }}/" + id + "/force-delete");
         }
 
         $('#confirmTrashModal').modal('show');
     }
+
+    // 2. Notifikasi Otomatis (Harus di luar fungsi confirmAction)
+    $(document).ready(function() {
+        @if(session('success'))
+            $.notify({
+                icon: 'fas fa-check-circle',
+                title: 'Berhasil',
+                message: "{{ session('success') }}",
+            },{
+                type: 'info',
+                placement: { from: "bottom", align: "right" },
+                time: 1000,
+                delay: 3000,
+                animate: {
+                    enter: 'animated fadeInUp',
+                    exit: 'animated fadeOutDown'
+                }
+            });
+        @endif
+    });
 </script>
+@endpush
 @endpush

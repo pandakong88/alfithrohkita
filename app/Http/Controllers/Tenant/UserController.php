@@ -141,6 +141,7 @@ class UserController extends Controller
 
     public function restore($id, RestoreUserAction $action)
     {
+        return ('halo');
         $user = User::onlyTrashed()->findOrFail($id);
     
         $this->ensureTenantAccess($user);

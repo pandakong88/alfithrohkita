@@ -96,6 +96,7 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+        // 1. Inisialisasi DataTable
         $('#datatable-trash').DataTable({
             "pageLength": 10,
             "language": {
@@ -112,7 +113,21 @@
             "dom": '<"d-flex flex-wrap justify-content-between align-items-center mb-3"lf>rt<"d-flex flex-wrap justify-content-between align-items-center mt-3"ip>'
         });
 
-        // Konfirmasi Restore
+        // 2. Notifikasi Berhasil (Tambahkan Bagian Ini)
+        @if(session('success'))
+            $.notify({
+                icon: 'fas fa-check-circle',
+                title: 'Berhasil',
+                message: "{{ session('success') }}",
+            },{
+                type: 'success',
+                placement: { from: "bottom", align: "right" },
+                time: 1000,
+                delay: 3000,
+            });
+        @endif
+
+        // 3. Konfirmasi Restore dengan SweetAlert
         $(document).on('click', '.btn-restore', function() {
             var form = $(this).closest("form");
             swal({
