@@ -2,33 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\Permission;
-
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class PermissionSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-
-    public function run()
+    public function run(): void
     {
-        $permissions = [
-            'manage_users',
-            'manage_santri',
-            'manage_keuangan',
-            'manage_absensi',
-            'manage_cms',
-            'manage_wali'
-        ];
-    
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate([
-                'name' => $permission,
-                'guard_name' => 'web',
-            ]);
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $permissions = ['manage_users', 'manage_santri', 'manage_keuangan', 'manage_absensi', 'manage_cms', 'manage_wali'];
+        foreach ($permissions as $p) {
+            Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
         }
+
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $adminPondok = Role::firstOrCreate(['name' => 'admin_pondok', 'guard_name' => 'web']);
+        $adminPondok->syncPermissions(['manage_santri', 'manage_wali', 'manage_absensi']);
     }
-    
 }
