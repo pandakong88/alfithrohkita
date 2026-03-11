@@ -24,7 +24,9 @@ return new class extends Migration
             $table->integer('total_rows')->default(0);
             $table->integer('valid_rows')->default(0);
             $table->integer('invalid_rows')->default(0);
-        
+            // $table->foreignId('committed_by')->nullable()->constrained('users');
+            // $table->timestamp('committed_at')->nullable();
+
             $table->enum('status', [
                 'preview',
                 'committed',

@@ -20,11 +20,11 @@ return new class extends Migration
             $table->json('payload'); // original row data
             $table->json('errors')->nullable();
         
+            $table->enum('mode',['insert','update','skip','error'])->nullable();
             $table->boolean('is_valid')->default(false);
-        
             $table->timestamps();
         
-            $table->index(['batch_id', 'is_valid']);
+            $table->index(['batch_id', 'is_valid','row_number']);
         });
     }
 

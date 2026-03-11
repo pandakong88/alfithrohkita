@@ -13,6 +13,7 @@ class SantriImportRow extends Model
         'row_number',
         'payload',
         'errors',
+        'mode',        // ← tambahkan ini
         'is_valid',
     ];
 

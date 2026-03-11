@@ -12,8 +12,8 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             PondokSeeder::class,
             UserSeeder::class,
-            WaliSeeder::class,
-            SantriSeeder::class,
+            // WaliSeeder::class,
+            // SantriSeeder::class,
             SantriHandbookSeeder::class,
         ]);
     }

@@ -134,6 +134,10 @@ Route::middleware('auth')->group(function () {
 
                 // ================= Import =================
 
+                Route::get('/santri/import/template',
+                    [\App\Http\Controllers\Tenant\SantriController::class,'downloadTemplate']
+                )->name('santri.template.download');
+                
                 Route::get('santri/import',
                     [\App\Http\Controllers\Tenant\SantriController::class, 'importForm']
                 )->name('santri.import');

@@ -5,7 +5,6 @@ namespace App\Domains\Santri\Actions;
 use App\Models\Santri;
 use App\Models\SantriImportBatch;
 use App\Models\SantriImportRow;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -15,103 +14,162 @@ class ImportSantriPreviewAction
     {
         return DB::transaction(function () use ($file) {
 
-            $user = Auth::user();
-            $pondokId = $user->pondok_id;
+            $user = auth()->user();
 
-            // 1️⃣ Buat batch
+            /*
+            |--------------------------------------------------------------------------
+            | 1️⃣ Buat Batch Import
+            |--------------------------------------------------------------------------
+            */
+
             $batch = SantriImportBatch::create([
-                'pondok_id'   => $pondokId,
+                'pondok_id'   => $user->pondok_id,
                 'uploaded_by' => $user->id,
                 'filename'    => $file->getClientOriginalName(),
                 'status'      => 'preview',
             ]);
 
-            // 2️⃣ Ambil data Excel
+            /*
+            |--------------------------------------------------------------------------
+            | 2️⃣ Ambil Data Excel
+            |--------------------------------------------------------------------------
+            */
+
             $rows = Excel::toCollection(null, $file)->first();
 
-            $total = 0;
-            $valid = 0;
-            $invalid = 0;
+            if (!$rows || $rows->isEmpty()) {
+                return $batch;
+            }
 
-            // 🔥 Skip header
+            /*
+            |--------------------------------------------------------------------------
+            | 3️⃣ Normalisasi Header
+            |--------------------------------------------------------------------------
+            */
+
+            $header = $rows->first()
+                ->map(function ($h) {
+                    return str_replace(' ', '_', strtolower(trim($h)));
+                })
+                ->toArray();
+
+            /*
+            |--------------------------------------------------------------------------
+            | 4️⃣ Loop Semua Row Excel
+            |--------------------------------------------------------------------------
+            */
+
             foreach ($rows->skip(1) as $index => $row) {
 
-                $total++;
-                $rowNumber = $index + 2; // +2 karena skip header
+                $payload = [];
+                $errors  = [];
 
-                $status = strtolower(trim($row[3] ?? 'active'));
+                foreach ($header as $colIndex => $columnName) {
 
-                // Normalisasi status
-                $allowedStatus = ['active', 'nonaktif', 'lulus', 'keluar'];
+                    if (!$columnName) {
+                        continue;
+                    }
 
-                if ($status === 'inactive') {
-                    $status = 'nonaktif';
+                    $value = $row[$colIndex] ?? null;
+
+                    if ($value !== null && $value !== '') {
+                        $payload[$columnName] = trim((string) $value);
+                    }
                 }
 
-                $payload = [
-                    'nis'           => $row[0] ?? null,
-                    'nama_lengkap'  => $row[1] ?? null,
-                    'jenis_kelamin' => $row[2] ?? null,
-                    'status'        => $status,
-                ];
+                /*
+                |--------------------------------------------------------------------------
+                | Skip Row Kosong
+                |--------------------------------------------------------------------------
+                */
 
-                $errors = [];
-
-                // =====================
-                // VALIDASI SANTRI
-                // =====================
-
-                if (!$payload['nis']) {
-                    $errors[] = 'NIS wajib diisi.';
+                if (empty(array_filter($payload))) {
+                    continue;
                 }
 
-                if (!$payload['nama_lengkap']) {
-                    $errors[] = 'Nama wajib diisi.';
+                /*
+                |--------------------------------------------------------------------------
+                | 5️⃣ Validasi Dasar
+                |--------------------------------------------------------------------------
+                */
+
+                if (empty($payload['nis'] ?? null)) {
+                    $errors['nis'] = 'NIS wajib diisi';
                 }
 
-                if (!in_array($payload['jenis_kelamin'], ['L', 'P'])) {
-                    $errors[] = 'Jenis kelamin harus L atau P.';
+                if (empty($payload['nama_lengkap'] ?? null)) {
+                    $errors['nama_lengkap'] = 'Nama lengkap wajib diisi';
                 }
 
-                if (!in_array($payload['status'], $allowedStatus)) {
-                    $errors[] = 'Status tidak valid.';
-                }
+                if (!empty($payload['jenis_kelamin'])) {
 
-                // Cek apakah NIS sudah ada (untuk info mode saja)
-                $exists = false;
-                if ($payload['nis']) {
-                    $exists = Santri::where('pondok_id', $pondokId)
-                        ->where('nis', $payload['nis'])
-                        ->exists();
+                    if (!in_array($payload['jenis_kelamin'], ['L', 'P'])) {
+                        $errors['jenis_kelamin'] = 'Jenis kelamin harus L atau P';
+                    }
                 }
-
-                $payload['mode'] = $exists ? 'update' : 'insert';
 
                 $isValid = empty($errors);
 
-                if ($isValid) {
-                    $valid++;
+                /*
+                |--------------------------------------------------------------------------
+                | 6️⃣ Tentukan Mode
+                |--------------------------------------------------------------------------
+                */
+
+                $mode = 'insert';
+
+                if (!$isValid) {
+
+                    $mode = 'error';
+
                 } else {
-                    $invalid++;
+
+                    $exists = Santri::where('pondok_id', $user->pondok_id)
+                        ->where('nis', $payload['nis'])
+                        ->exists();
+
+                    $mode = $exists ? 'update' : 'insert';
                 }
+
+                /*
+                |--------------------------------------------------------------------------
+                | 7️⃣ Simpan Import Row
+                |--------------------------------------------------------------------------
+                */
 
                 SantriImportRow::create([
                     'batch_id'   => $batch->id,
-                    'row_number' => $rowNumber,
+                    'row_number' => $index + 2,
                     'payload'    => $payload,
                     'errors'     => $errors ?: null,
                     'is_valid'   => $isValid,
+                    'mode'       => $mode,
                 ]);
             }
 
-            // 3️⃣ Update summary
+            /*
+            |--------------------------------------------------------------------------
+            | 8️⃣ Update Statistik Batch
+            |--------------------------------------------------------------------------
+            */
+
+            $totalRows = $batch->rows()->count();
+
+            $validRows = $batch->rows()
+                ->where('is_valid', true)
+                ->count();
+
+            $invalidRows = $batch->rows()
+                ->where('is_valid', false)
+                ->count();
+
             $batch->update([
-                'total_rows'   => $total,
-                'valid_rows'   => $valid,
-                'invalid_rows' => $invalid,
+                'total_rows'   => $totalRows,
+                'valid_rows'   => $validRows,
+                'invalid_rows' => $invalidRows,
             ]);
 
-            return $batch->fresh();
+            return $batch;
         });
     }
 }

@@ -15,6 +15,7 @@ class Santri extends Model
     protected $fillable = [
         'pondok_id',
         'wali_id',
+        'kamar_id',
         'nis',
         'nama_lengkap',
         'jenis_kelamin',
@@ -54,6 +55,16 @@ class Santri extends Model
     public function updater()
     {
         return $this->belongsTo(\App\Models\User::class, 'updated_by');
+    }
+
+    public function kelas()
+    {
+        return $this->belongsTo(Kelas::class);
+    }
+
+    public function kamar()
+    {
+        return $this->belongsTo(Kamar::class);
     }
 
     /*
