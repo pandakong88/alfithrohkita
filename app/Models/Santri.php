@@ -67,6 +67,16 @@ class Santri extends Model
         return $this->belongsTo(Kamar::class);
     }
 
+    public function perizinans()
+    {
+        return $this->hasMany(\App\Models\Perizinan::class);
+    }
+    public function perizinanAktif()
+    {
+        return $this->hasOne(\App\Models\Perizinan::class)
+            ->where('status', 'aktif');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Query Scopes

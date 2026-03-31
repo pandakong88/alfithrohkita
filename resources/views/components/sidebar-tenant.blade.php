@@ -26,56 +26,31 @@
                     <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
                     <h4 class="text-section">Manajemen Data</h4>
                 </li>
-                <li class="nav-item 
-                    {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'active submenu' : '' }}">
-                
-                    <a data-bs-toggle="collapse" href="#menuSantri"
-                    class="{{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? '' : 'collapsed' }}"
-                    aria-expanded="{{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'true' : 'false' }}">
-                
+
+                {{-- Menu Santri --}}
+                <li class="nav-item {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'active submenu' : '' }}">
+                    <a data-bs-toggle="collapse" href="#menuSantri">
                         <i class="fas fa-user-graduate"></i>
                         <p>Data Santri</p>
                         <span class="caret"></span>
                     </a>
-                
-                    <div class="collapse 
-                        {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'show' : '' }}"
-                        id="menuSantri">
-                
+                    <div class="collapse {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'show' : '' }}" id="menuSantri">
                         <ul class="nav nav-collapse">
-                
-                            {{-- Daftar Santri --}}
                             <li class="{{ request()->routeIs('tenant.santri.index') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.santri.index') }}">
                                     <span class="sub-item">Daftar Santri</span>
                                 </a>
                             </li>
-                
-                            {{-- Import Santri --}}
-                            <li class="{{ request()->routeIs('tenant.santri.import') ? 'active' : '' }}">
-                                <a href="{{ route('tenant.santri.import') }}">
-                                    <span class="sub-item">Import Santri</span>
-                                </a>
-                            </li>
-                
-                            {{-- Riwayat Import --}}
-                            <li class="{{ request()->routeIs('tenant.santri.import.history') ? 'active' : '' }}">
-                                <a href="{{ route('tenant.santri.import.history') }}">
-                                    <span class="sub-item">Riwayat Import</span>
-                                </a>
-                            </li>
-                
-                            {{-- Snapshot --}}
-                            <li class="{{ request()->routeIs('tenant.santri.snapshot.*') ? 'active' : '' }}">
+                            <li class="{{ request()->routeIs('tenant.santri.snapshot.import') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.santri.snapshot.import') }}">
                                     <span class="sub-item">Snapshot Santri</span>
                                 </a>
                             </li>
-                
                         </ul>
                     </div>
                 </li>
 
+                {{-- Menu Wali --}}
                 <li class="nav-item {{ request()->routeIs('tenant.wali.*') ? 'active' : '' }}">
                     <a href="{{ route('tenant.wali.index') }}">
                         <i class="fas fa-user-friends"></i>
@@ -83,13 +58,55 @@
                     </a>
                 </li>
 
+                {{-- Menu Pedoman Santri (Handbook) --}}
+                <li class="nav-item {{ request()->routeIs('tenant.santri.handbook.*') ? 'active' : '' }}">
+                    <a href="{{ route('tenant.santri.handbook.index') }}">
+                        <i class="fas fa-book-open"></i>
+                        <p>Pedoman Santri</p>
+                    </a>
+                </li>
+
+                <li class="nav-section">
+                    <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
+                    <h4 class="text-section">Fitur Import</h4>
+                </li>
+
+                {{-- Menu Import Engine (Proses & Template) --}}
+                <li class="nav-item {{ request()->routeIs('tenant.import.*') || request()->routeIs('tenant.import-templates.*') ? 'active submenu' : '' }}">
+                    <a data-bs-toggle="collapse" href="#menuImport">
+                        <i class="fas fa-file-import"></i>
+                        <p>Sistem Import</p>
+                        <span class="caret"></span>
+                    </a>
+                    <div class="collapse {{ request()->routeIs('tenant.import.*') || request()->routeIs('tenant.import-templates.*') ? 'show' : '' }}" id="menuImport">
+                        <ul class="nav nav-collapse">
+                            <li class="{{ request()->routeIs('tenant.import.upload') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.import.upload') }}">
+                                    <span class="sub-item">Upload File</span>
+                                </a>
+                            </li>
+                            <li class="{{ request()->routeIs('tenant.import.history') || request()->routeIs('tenant.import.detail') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.import.history') }}">
+                                    <span class="sub-item">Riwayat & Log</span>
+                                </a>
+                            </li>
+                            <li class="{{ request()->routeIs('tenant.import-templates.index') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.import-templates.index') }}">
+                                    <span class="sub-item">Konfigurasi Template</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 <li class="nav-section">
                     <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
                     <h4 class="text-section">Pengaturan Sistem</h4>
                 </li>
 
+                {{-- Manajemen Akses --}}
                 <li class="nav-item {{ request()->routeIs('tenant.user.*') || request()->routeIs('tenant.role.*') ? 'active submenu' : '' }}">
-                    <a data-bs-toggle="collapse" href="#pengaturanAkses" class="{{ request()->routeIs('tenant.user.*') || request()->routeIs('tenant.role.*') ? '' : 'collapsed' }}" aria-expanded="{{ request()->routeIs('tenant.user.*') || request()->routeIs('tenant.role.*') ? 'true' : 'false' }}">
+                    <a data-bs-toggle="collapse" href="#pengaturanAkses">
                         <i class="fas fa-user-lock"></i>
                         <p>Manajemen Akses</p>
                         <span class="caret"></span>
@@ -110,7 +127,7 @@
                     </div>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('tenant.pondok.*') ? 'active' : '' }}">
+                <li class="nav-item">
                     <a href="#">
                         <i class="fas fa-mosque"></i>
                         <p>Profil Pondok</p>

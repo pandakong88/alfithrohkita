@@ -225,6 +225,62 @@ Route::middleware('auth')->group(function () {
                 )->name('wali.ajax.store');
             });
 
-        });
+             /*
+            |--------------------------------------------------------------------------
+            | IMPORT TEMPLATE MANAGEMENT
+            |--------------------------------------------------------------------------
+            */
+            Route::resource('import-templates',
+                \App\Http\Controllers\Tenant\ImportTemplateController::class
+            )->names('import-templates');
+
+            Route::get('import-templates/{id}/download',
+                [\App\Http\Controllers\Tenant\ImportTemplateController::class,'download']
+            )->name('import-templates.download');
+
+            Route::post('import-survey',
+                [\App\Http\Controllers\Tenant\ImportTemplateController::class,'import']
+            )->name('import-survey');
+
+            /*
+            |--------------------------------------------------------------------------
+            | IMPORT PROCESS
+            |--------------------------------------------------------------------------
+            */
+            Route::get('/upload', 
+                [\App\Http\Controllers\Tenant\ImportController::class, 'index']
+            )->name('import.upload');
+            
+            Route::post('/preview', 
+                [\App\Http\Controllers\Tenant\ImportController::class, 'preview']
+            )->name('import.preview');
+            
+            Route::get('/history', 
+                [\App\Http\Controllers\Tenant\ImportController::class,'history']
+            )->name('import.history');
+
+            Route::get('/history/{batch}', 
+                [\App\Http\Controllers\Tenant\ImportController::class,'detail']
+            )->name('import.detail');
+
+
+            Route::get('/{batch}', 
+                [\App\Http\Controllers\Tenant\ImportController::class, 'show']
+            )->name('import.show');
+
+            Route::post('/{batch}/commit', 
+                [\App\Http\Controllers\Tenant\ImportController::class, 'commit']
+            )->name('import.commit');
+          
+            Route::get('/import/{batch}/errors/download', 
+                [\App\Http\Controllers\Tenant\ImportController::class,'downloadErrors']
+            )->name('import.errors.download');
+            
+            Route::post('/import/{batch}/rollback',
+                [\App\Http\Controllers\Tenant\ImportController::class,'rollback']
+            )->name('import.rollback');
+
+
+            });
 
 });
