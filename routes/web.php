@@ -1,35 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-/*
-|--------------------------------------------------------------------------
-| Public Routes
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
-
-Route::get('pedoman-santri', 
-    [\App\Http\Controllers\Public\SantriHandbookController::class, 'index']
-)->name('public.handbook.index');
-
-Route::get('pedoman-santri/download/{handbook}', 
-    [\App\Http\Controllers\Public\SantriHandbookController::class, 'download']
-)->name('public.handbook.download');
-
-Route::get('/preview-pdf/{id}', 
-    [\App\Http\Controllers\Public\SantriHandbookController::class, 'preview']
-)->name('handbook.preview');
-/*
-|--------------------------------------------------------------------------
-| Authentication Routes
-|--------------------------------------------------------------------------
-*/
-
 use App\Http\Controllers\Auth\LoginController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
@@ -224,6 +196,38 @@ Route::middleware('auth')->group(function () {
                     [\App\Http\Controllers\Tenant\WaliController::class, 'ajaxStore']
                 )->name('wali.ajax.store');
             });
+
+            /*
+            |--------------------------------------------------------------------------
+            | PERIZINAN MODULE
+            |--------------------------------------------------------------------------
+            */
+            Route::middleware('permission:manage_perizinan')
+            ->prefix('template-perizinan')
+            ->name('template-perizinan.')
+            ->group(function () {
+        
+                // upload PDF
+                Route::get('/upload', [
+                    App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'create'
+                ])->name('upload');
+
+                Route::post('/upload', [
+                    App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'storeFile'
+                ])->name('upload.store');
+
+                Route::post('/store', [
+                    App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'store'
+                ])->name('store');
+
+                // resource (optional, bisa tetap)
+                Route::resource('/', App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class)
+                    ->parameters(['' => 'template_perizinan']);
+            });
+
+
+
+
 
              /*
             |--------------------------------------------------------------------------

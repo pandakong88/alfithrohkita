@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             // SantriSeeder::class,
             SantriHandbookSeeder::class,
             ImportFieldSeeder::class,
+            TemplateVariableSeeder::class,
         ]);
     }
 }

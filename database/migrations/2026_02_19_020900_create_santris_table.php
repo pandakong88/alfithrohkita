@@ -41,7 +41,8 @@ return new class extends Migration
                 'active',
                 'nonaktif',
                 'lulus',
-                'keluar'
+                'keluar',
+                'izin',
             ])->default('active');
         
             $table->date('tanggal_masuk')->nullable();
