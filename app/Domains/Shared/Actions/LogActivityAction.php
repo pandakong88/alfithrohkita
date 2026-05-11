@@ -30,4 +30,33 @@ class LogActivityAction
             ], $meta),
         ]);
     }
+
+    /**
+     * Method khusus untuk log absensi massal/batch
+     */
+    public function logBatchAbsensi(int $sesiId, string $tanggal, int $total): void 
+    {
+        \App\Models\ActivityLog::create([
+            'pondok_id'   => auth()->user()?->pondok_id,
+            'causer_id'   => auth()->id(),
+            'event'       => 'absensi.batch_update',
+            
+            // Pakai nama model Absensi agar konsisten dengan format log lainnya
+            // ID diisi 0 karena tidak merujuk ke 1 baris absensi saja
+            'subject_type'=> 'App\\Models\\Absensi', 
+            'subject_id'  => 0, 
+            
+            'description' => "Update massal absensi Sesi ID: {$sesiId} pada tanggal: {$tanggal}",
+            'new_values'  => [
+                'total_data' => $total,
+                'sesi_id'    => $sesiId,
+                'tanggal'    => $tanggal
+            ],
+            'meta'        => [
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'source' => 'absensi_batch_module'
+            ],
+        ]);
+    }
 }

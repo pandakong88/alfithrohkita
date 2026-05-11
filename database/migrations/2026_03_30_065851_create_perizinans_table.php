@@ -15,38 +15,77 @@ return new class extends Migration
 
             $table->id();
         
+            /*
+            |--------------------------------------------------------------------------
+            | TENANT
+            |--------------------------------------------------------------------------
+            */
             $table->foreignId('pondok_id')
                 ->constrained()
                 ->cascadeOnDelete();
         
+            /*
+            |--------------------------------------------------------------------------
+            | RELASI UTAMA
+            |--------------------------------------------------------------------------
+            */
             $table->foreignId('santri_id')
                 ->constrained()
                 ->cascadeOnDelete();
         
+            // 🔥 WAJIB
             $table->foreignId('template_perizinan_id')
-                ->nullable()
                 ->constrained('template_perizinans')
-                ->nullOnDelete();
+                ->cascadeOnDelete();
         
-            $table->string('kode_surat')->unique();
+            /*
+            |--------------------------------------------------------------------------
+            | IDENTITAS SURAT
+            |--------------------------------------------------------------------------
+            */
+            $table->string('kode_surat');
         
+            // 🔥 nomor dari surat fisik (optional tapi penting)
+            $table->string('nomor_manual')->nullable();
+        
+            /*
+            |--------------------------------------------------------------------------
+            | WAKTU IZIN
+            |--------------------------------------------------------------------------
+            */
             $table->dateTime('tanggal_keluar');
-        
             $table->dateTime('batas_kembali');
-        
             $table->dateTime('tanggal_kembali')->nullable();
         
+            /*
+            |--------------------------------------------------------------------------
+            | STATUS
+            |--------------------------------------------------------------------------
+            */
             $table->enum('status', [
+                'pending',
                 'aktif',
                 'kembali',
                 'terlambat',
                 'dibatalkan'
             ])->default('aktif');
         
+            /*
+            |--------------------------------------------------------------------------
+            | KETERANGAN
+            |--------------------------------------------------------------------------
+            */
             $table->text('keperluan')->nullable();
+            // Di migration perizinans
+            $table->json('keterangan')->nullable();
+            $table->integer('durasi_terlambat_menit')->nullable();
+
         
-            $table->text('keterangan')->nullable();
-        
+            /*
+            |--------------------------------------------------------------------------
+            | AUDIT
+            |--------------------------------------------------------------------------
+            */
             $table->foreignId('created_by')
                 ->nullable()
                 ->constrained('users')
@@ -58,6 +97,13 @@ return new class extends Migration
                 ->nullOnDelete();
         
             $table->timestamps();
+        
+            /*
+            |--------------------------------------------------------------------------
+            | INDEX & CONSTRAINT
+            |--------------------------------------------------------------------------
+            */
+            $table->unique(['pondok_id', 'kode_surat']);
         
             $table->index(['pondok_id', 'status']);
             $table->index(['santri_id', 'status']);

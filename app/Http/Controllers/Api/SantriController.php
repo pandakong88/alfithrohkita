@@ -3,117 +3,92 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreSantriRequest;
-use App\Http\Requests\UpdateSantriRequest;
-use App\Http\Resources\SantriResource;
+use Illuminate\Http\Request;
 use App\Models\Santri;
-use App\Domains\Santri\DTO\CreateSantriData;
-use App\Domains\Santri\DTO\UpdateSantriData;
-use App\Domains\Santri\Actions\CreateSantriAction;
-use App\Domains\Santri\Actions\UpdateSantriAction;
+use App\Models\Kelas;
+use App\Models\Komplek;
+use App\Http\Resources\SantriListResource;
+use App\Http\Resources\SantriDetailResource;
 
 class SantriController extends Controller
 {
-    public function index(\Illuminate\Http\Request $request)
+    public function index(Request $request)
     {
-        $query = Santri::with('wali')->where('pondok_id', auth()->user()->pondok_id);
-
-        // 1. Filter Search (Nama/NIS) - Logika Hybrid yang tadi
-        $searchValue = is_array($request->search) ? ($request->search['value'] ?? null) : $request->search;
-        if ($searchValue) {
-            $query->where(function($q) use ($searchValue) {
-                $q->where('nama_lengkap', 'like', "%{$searchValue}%") // Sesuaikan dengan nama_lengkap
-                ->orWhere('nis', 'like', "%{$searchValue}%");
+        $query = Santri::query();
+    
+        // 1. SEARCH
+        $query->when($request->search, function ($q) use ($request) {
+            $q->where(function ($sub) use ($request) {
+                $sub->where('nama_lengkap', 'like', '%' . $request->search . '%')
+                    ->orWhere('nis', 'like', '%' . $request->search . '%');
             });
+        });
+    
+        // 2. FILTER DASAR (ID Based)
+        $query->when($request->status, fn($q) => $q->where('status', $request->status));
+        $query->when($request->kelas_id, fn($q) => $q->where('kelas_id', $request->kelas_id));
+        $query->when($request->kamar_id, fn($q) => $q->where('kamar_id', $request->kamar_id));
+    
+        // 3. FILTER KOMPLEK (Deep Filtering lewat relasi Kamar)
+        $query->when($request->komplek_id, function ($q) use ($request) {
+            $q->whereHas('kamar', function ($k) use ($request) {
+                $k->where('komplek_id', $request->komplek_id);
+            });
+        });
+    
+        // 4. DINAMIS SORTING
+        switch ($request->sort) {
+            case 'nama_asc':
+                $query->orderBy('nama_lengkap', 'asc');
+                break;
+            case 'nama_desc':
+                $query->orderBy('nama_lengkap', 'desc');
+                break;
+            default:
+                $query->latest();
+                break;
         }
-
-        // 2. Filter Jenis Kelamin (L/P)
-        $query->when($request->filled('jk'), function ($q) use ($request) {
-            return $q->where('jenis_kelamin', $request->jk);
-        });
-
-        // 3. Filter Status (active/nonaktif)
-        $query->when($request->filled('status'), function ($q) use ($request) {
-            return $q->where('status', $request->status);
-        });
-
-        // 4. Filter Tahun Masuk (Berdasarkan created_at jika tanggal_masuk null)
-        $query->when($request->filled('tahun'), function ($q) use ($request) {
-            return $q->whereYear('created_at', $request->tahun);
-        });
-
-        $perPage = $request->get('length', $request->get('per_page', 10));
-        $santri = $query->latest()->paginate($perPage);
-
-        return response()->json([
-            'success' => true,
-            'data' => SantriResource::collection($santri),
-            'meta' => [
-                'current_page' => $santri->currentPage(),
-                'last_page' => $santri->lastPage(),
-                'total' => $santri->total(),
-            ],
-            'draw' => intval($request->draw),
-        ]);
-    }
-
-    public function store(StoreSantriRequest $request)
-    {
-        $dto = CreateSantriData::fromArray($request->validated());
-
-        $santri = app(CreateSantriAction::class)->execute($dto);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Santri berhasil ditambahkan',
-            'data' => new SantriResource($santri)
-        ], 201);
-    }
-
-    public function show(Santri $santri)
-    {
-        $this->authorizeSantri($santri);
     
-        // Tambahkan baris ini untuk menarik data wali
-        $santri->load('wali'); 
+        // RELATION & SELECT (Eager Loading untuk performa)
+        $santri = $query->with([
+                'kelas:id,nama',
+                'kamar:id,nama,komplek_id',
+                'kamar.kompleks:id,nama' 
+            ])
+            ->select('id', 'nama_lengkap', 'nis', 'kelas_id', 'kamar_id', 'jenis_kelamin', 'status')
+            ->paginate(10);
     
-        return response()->json([
-            'success' => true,
-            'data' => new SantriResource($santri)
-        ]);
+        return SantriListResource::collection($santri);
     }
 
-    public function update(UpdateSantriRequest $request, Santri $santri)
+    public function show($id)
     {
-        $this->authorizeSantri($santri);
+        $santri = Santri::with([
+            'wali:id,nama,no_hp,pekerjaan,alamat',
+            'kelas:id,nama',
+            'kamar:id,nama,komplek_id',
+            'kamar.kompleks:id,nama'
+        ])->findOrFail($id);
 
-        $dto = UpdateSantriData::fromArray($request->validated());
-
-        $santri = app(UpdateSantriAction::class)->execute($santri, $dto);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Santri berhasil diupdate',
-            'data' => new SantriResource($santri)
-        ]);
+        return new SantriDetailResource($santri);
     }
 
-    public function destroy(Santri $santri)
+    /**
+     * Expert Feature: Mengambil data master untuk pilihan filter di Mobile
+     */
+    public function getFilterData()
     {
-        $this->authorizeSantri($santri);
-
-        $santri->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Santri berhasil dihapus'
-        ]);
-    }
-
-    private function authorizeSantri(Santri $santri): void
-    {
-        if ($santri->pondok_id !== auth()->user()->pondok_id) {
-            abort(403, 'Akses ditolak.');
+        try {
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'kelas' => Kelas::select('id', 'nama')->orderBy('nama', 'asc')->get(),
+                    'kompleks' => Komplek::select('id', 'nama')->orderBy('nama', 'asc')->get(),
+                    // Kamu bisa tambah master data lain di sini nanti
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 }

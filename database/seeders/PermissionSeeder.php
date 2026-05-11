@@ -21,7 +21,9 @@ class PermissionSeeder extends Seeder
             'manage_absensi', 
             'manage_cms', 
             'manage_wali',
-            'manage_perizinan'
+            'manage_perizinan',
+            'manage_absensi_sesi',
+            'manage_absensi',
         ];
 
         foreach ($permissions as $p) {

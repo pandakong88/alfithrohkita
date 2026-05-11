@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Public\SantriHandbookController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/pedoman-santri', [SantriHandbookController::class, 'index'])->name('pedoman-santri');
+Route::get('/pedoman-santri', [SantriHandbookController::class, 'download'])->name('download');
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])
@@ -220,14 +223,141 @@ Route::middleware('auth')->group(function () {
                     App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'store'
                 ])->name('store');
 
+                Route::delete('/{id}', [
+                    \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'destroy'
+                ])->name('destroy');
+
+                Route::post('/{id}/restore', [
+                    \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'restore'
+                ])->name('restore');
+
+                Route::delete('/{id}/force', [
+                    \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'forceDelete'
+                ])->name('forceDelete');
+
+                Route::post('/update-status', [
+                    \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'updateStatus'
+                ])->name('update-status');
+
                 // resource (optional, bisa tetap)
                 Route::resource('/', App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class)
                     ->parameters(['' => 'template_perizinan']);
             });
 
+            Route::middleware('permission:manage_perizinan')
+            ->prefix('perizinan')
+            ->name('perizinan.')
+            ->group(function () {
+                Route::get('perizinan/{id}', [
+                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'show'
+                ])->name('show');
+                Route::get('perizinan/{id}', [
+                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'show'
+                ])->name('show');
 
+                Route::get('/santri-data/{id}', [
+                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'getSantriData'
+                ])->name('santri-data');
+                
+                Route::get('perizinan/scan/{kode}', [
+                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'scan'
+                ])->name('scan');
 
+                Route::post('perizinan/{id}/kembali', [
+                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'kembali'
+                ])->name('kembali');
+                
+                // Ganti dari POST ke GET dan tambahkan parameter ID
+                Route::get('data-riwayat/{santri_id}', [
+                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'dataRiwayat'
+                ])->name('data-riwayat');
 
+                // resource untuk manajemen perizinan (CRUD izin keluar masuk)
+                Route::resource('/', \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class);
+            });
+
+            /*
+            |--------------------------------------------------------------------------
+            | ABSENSI MODULE
+            |--------------------------------------------------------------------------
+            */
+            
+            // 1. MASTER SESI ABSENSI (Mirip Template Perizinan)
+            Route::middleware('permission:manage_absensi')
+            ->prefix('absensi-sesi')
+            ->name('absensi-sesi.')
+            ->group(function () {
+                
+                Route::post('/store', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'store'
+                ])->name('store');
+
+                Route::delete('/{id}', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'destroy'
+                ])->name('destroy');
+
+                Route::post('/{id}/restore', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'restore'
+                ])->name('restore');
+
+                Route::delete('/{id}/force', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'forceDelete'
+                ])->name('forceDelete');
+
+                // Resource untuk Master Sesi (Index, Create, Edit, dll)
+                Route::resource('/', \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class)
+                    ->parameters(['' => 'absensi_sesi']);
+                
+                Route::get('/{id}/manage', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'manageSantri'
+                ])->name('manage');
+                    
+                Route::post('/{id}/manage', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'updateSantri'
+                ])->name('update-santri');
+
+                Route::get('/{id}/print-fisik', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'printAbsenFisik'
+                ])->name('print-fisik');
+
+                // Halaman Setting (Layout Dashboard)
+                Route::get('/{id}/manage-print', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'managePrint'
+                ])->name('manage-print');
+            });
+
+            // 2. INPUT & REKAP ABSENSI
+            Route::middleware('permission:manage_absensi')
+            ->prefix('absensi')
+            ->name('absensi.')
+            ->group(function () {
+                
+                // 1. Gerbang Utama
+                Route::get('/pilih-sesi', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'pilihSesi'
+                ])->name('pilih-sesi');
+        
+                // 2. Input Sesi Spesifik (Manual/Scan)
+                // Pindahkan ke '/sesi/{sesi_id}' agar tidak tabrakan dengan ID resource
+                Route::get('/sesi/{sesi_id}', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'index'
+                ])->name('index');
+        
+                // 3. Simpan Batch (Otok Satu)
+                Route::post('/rekap-store', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'store'
+                ])->name('store');
+                
+                Route::get('/print', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'print'
+                ])->name('print');
+
+                // 4. Ajax Riwayat
+                Route::get('/data-riwayat/{santri_id}', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'dataRiwayat'
+                ])->name('data-riwayat');
+
+            });
 
              /*
             |--------------------------------------------------------------------------

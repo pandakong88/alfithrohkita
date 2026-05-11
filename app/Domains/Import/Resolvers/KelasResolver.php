@@ -32,4 +32,26 @@ class KelasResolver
 
         return $kelas;
     }
+
+    /**
+     * Update Kelas
+     * Digunakan saat tahap commit untuk sinkronisasi data payload ke model.
+     */
+    public function update(Kelas $model, array $payload): bool
+    {
+        if (empty($payload['kelas'])) {
+            return false;
+        }
+
+        $namaBaru = trim($payload['kelas']);
+
+        // Hanya update jika ada perubahan nama
+        if ($model->nama !== $namaBaru) {
+            return $model->update([
+                'nama' => $namaBaru
+            ]);
+        }
+
+        return true;
+    }
 }

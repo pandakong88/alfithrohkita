@@ -32,4 +32,26 @@ class KomplekResolver
 
         return $komplek;
     }
+
+    /**
+     * Update Komplek
+     * Sinkronisasi data model dengan payload terbaru saat commit import.
+     */
+    public function update(Komplek $model, array $payload): bool
+    {
+        if (empty($payload['komplek'])) {
+            return false;
+        }
+
+        $namaBaru = trim($payload['komplek']);
+
+        // Hanya update jika namanya berubah
+        if ($model->nama !== $namaBaru) {
+            return $model->update([
+                'nama' => $namaBaru
+            ]);
+        }
+
+        return true;
+    }
 }

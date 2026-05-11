@@ -14,9 +14,10 @@ class Kamar extends Model
         'kapasitas'
     ];
 
-    public function komplek()
+    public function kompleks()
     {
-        return $this->belongsTo(Komplek::class);
+        // Tambahkan parameter kedua yaitu 'komplek_id'
+        return $this->belongsTo(Komplek::class, 'komplek_id');
     }
 
     public function santris()

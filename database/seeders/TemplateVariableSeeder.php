@@ -3,122 +3,126 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\TemplateVariable;
 
 class TemplateVariableSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
         $variables = [
-
-            // =========================
-            // 🔹 SANTRI
-            // =========================
+            // --- KELOMPOK AUTO (DATA DARI DATABASE) ---
             [
                 'key' => 'santri.nama_lengkap',
                 'label' => 'Nama Santri',
-                'source' => 'santri.nama_lengkap',
+                'source' => 'nama_lengkap',
                 'type' => 'auto',
+                'input_type' => 'text',
+                'options' => null,
+                'is_required' => true,
             ],
             [
                 'key' => 'santri.nis',
                 'label' => 'NIS',
-                'source' => 'santri.nis',
+                'source' => 'nis',
                 'type' => 'auto',
+                'input_type' => 'text',
+                'options' => null,
+                'is_required' => true,
             ],
             [
                 'key' => 'santri.jenis_kelamin',
                 'label' => 'Jenis Kelamin',
-                'source' => 'santri.jenis_kelamin',
+                'source' => 'jenis_kelamin',
                 'type' => 'auto',
+                'input_type' => 'select',
+                'options' => json_encode([
+                    ['value' => 'L', 'label' => 'Laki-laki'],
+                    ['value' => 'P', 'label' => 'Perempuan'],
+                ]),
+                'is_required' => true,
             ],
-            [
-                'key' => 'santri.alamat',
-                'label' => 'Alamat Santri',
-                'source' => 'santri.alamat',
-                'type' => 'auto',
-            ],
-
-            // =========================
-            // 🔹 WALI
-            // =========================
-            [
-                'key' => 'wali.nama',
-                'label' => 'Nama Wali',
-                'source' => 'wali.nama',
-                'type' => 'auto',
-            ],
-            [
-                'key' => 'wali.no_hp',
-                'label' => 'No HP Wali',
-                'source' => 'wali.no_hp',
-                'type' => 'auto',
-            ],
-
-            // =========================
-            // 🔹 KELAS
-            // =========================
             [
                 'key' => 'kelas.nama',
-                'label' => 'Kelas',
+                'label' => 'Kelas Santri',
                 'source' => 'kelas.nama',
                 'type' => 'auto',
+                'input_type' => 'text',
+                'options' => null,
+                'is_required' => false,
             ],
 
-            // =========================
-            // 🔹 KAMAR & KOMPLEK
-            // =========================
-            [
-                'key' => 'kamar.nama',
-                'label' => 'Kamar',
-                'source' => 'kamar.nama',
-                'type' => 'auto',
-            ],
-            [
-                'key' => 'komplek.nama',
-                'label' => 'Komplek',
-                'source' => 'komplek.nama',
-                'type' => 'auto',
-            ],
-
-            // =========================
-            // 🔹 PERIZINAN (MANUAL)
-            // =========================
+            // --- KELOMPOK MANUAL (INPUT OLEH ADMIN) ---
             [
                 'key' => 'tanggal_keluar',
                 'label' => 'Tanggal Keluar',
+                'source' => null,
                 'type' => 'manual',
                 'input_type' => 'date',
+                'options' => null,
+                'is_required' => true,
             ],
             [
                 'key' => 'batas_kembali',
                 'label' => 'Batas Kembali',
+                'source' => null,
                 'type' => 'manual',
                 'input_type' => 'date',
+                'options' => null,
+                'is_required' => true,
+            ],
+            [
+                'key' => 'tanggal_kembali',
+                'label' => 'Tanggal Kembali',
+                'source' => null,
+                'type' => 'manual',
+                'input_type' => 'date',
+                'options' => null,
+                'is_required' => true,
             ],
             [
                 'key' => 'keperluan',
-                'label' => 'Keperluan',
+                'label' => 'Keperluan Izin',
+                'source' => null,
                 'type' => 'manual',
                 'input_type' => 'textarea',
+                'options' => null,
+                'is_required' => true,
             ],
             [
-                'key' => 'keterangan',
-                'label' => 'Keterangan Tambahan',
+                'key' => 'wali.nama_penjemput',
+                'label' => 'Nama Penjemput (Wali)',
+                'source' => 'wali.nama', // Default ambil dari DB, tapi bisa diketik ulang
                 'type' => 'manual',
-                'input_type' => 'textarea',
+                'input_type' => 'text',
+                'options' => null,
+                'is_required' => true,
+            ],
+            [
+                'key' => 'wali.no_hp_penjemput',
+                'label' => 'No. HP Penjemput',
+                'source' => 'wali.no_hp',
+                'type' => 'manual',
+                'input_type' => 'text',
+                'options' => null,
+                'is_required' => false,
+            ],
+            [
+                'key' => 'kategori_izin',
+                'label' => 'Kategori Izin',
+                'source' => null,
+                'type' => 'manual',
+                'input_type' => 'select',
+                'options' => json_encode([
+                    ['value' => 'reguler', 'label' => 'Sakit / Izin Biasa'],
+                    ['value' => 'darurat', 'label' => 'Darurat / Keluarga Meninggal'],
+                    ['value' => 'pendidikan', 'label' => 'Lomba / Pendidikan'],
+                ]),
+                'is_required' => true,
             ],
         ];
 
         foreach ($variables as $var) {
-            DB::table('template_variables')->updateOrInsert(
-                ['key' => $var['key']],
-                array_merge($var, [
-                    'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ])
-            );
+            TemplateVariable::updateOrCreate(['key' => $var['key']], $var);
         }
     }
 }

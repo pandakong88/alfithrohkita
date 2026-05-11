@@ -24,11 +24,11 @@ return new class extends Migration
                   ->nullable()
                   ->constrained('walis')
                   ->nullOnDelete();
-        
+
             // Identitas utama
             $table->string('nis');
             $table->string('nama_lengkap');
-            $table->enum('jenis_kelamin', ['L', 'P']);
+            $table->enum('jenis_kelamin', ['L', 'P'])->nullable();
             $table->string('tempat_lahir')->nullable();
             $table->date('tanggal_lahir')->nullable();
         

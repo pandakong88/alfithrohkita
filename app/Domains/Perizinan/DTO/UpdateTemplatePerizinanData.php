@@ -2,24 +2,38 @@
 
 namespace App\Domains\Perizinan\DTO;
 
-class UpdateTemplateData
+class UpdateTemplatePerizinanData
 {
     public function __construct(
         public string $nama,
-        public ?string $deskripsi,
-        public ?string $format_surat,
-        public string $layout_print,
-        public bool $is_active,
+        public ?string $deskripsi = null,
+        public ?string $format_surat = null,
+        public int $layout_print = 4,
+
+        // 🔥 core fitur kamu
+        public array $required_variables = [],
+        public ?string $file_pdf = null,
+
+        public bool $is_active = true,
+        public bool $is_default = false,
     ) {}
 
     public static function fromArray(array $data): self
     {
         return new self(
             nama: $data['nama'],
+
             deskripsi: $data['deskripsi'] ?? null,
             format_surat: $data['format_surat'] ?? null,
-            layout_print: $data['layout_print'],
-            is_active: $data['is_active'] ?? true,
+
+            layout_print: (int) ($data['layout_print'] ?? 4),
+
+            required_variables: array_values($data['required_variables'] ?? []),
+
+            file_pdf: $data['file_pdf'] ?? null,
+
+            is_active: (bool) ($data['is_active'] ?? true),
+            is_default: (bool) ($data['is_default'] ?? false),
         );
     }
 }

@@ -2,10 +2,16 @@
 
 namespace App\Models;
 
+use App\Domains\Shared\Traits\BelongsToTenant;
+use App\Models\Pondok;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TemplatePerizinan extends Model
 {
+    use BelongsToTenant,SoftDeletes;
+
+
     protected $table = 'template_perizinans';
 
     protected $fillable = [

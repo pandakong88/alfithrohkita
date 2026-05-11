@@ -28,7 +28,7 @@ class DynamicTemplateExport implements FromArray, WithHeadings
 
         $fields = $this->headings();
 
-        $santris = Santri::with(['wali','kamar.komplek'])
+        $santris = Santri::with(['wali','kamar.kompleks'])
             ->where('pondok_id', auth()->user()->pondok_id)
             ->get();
 

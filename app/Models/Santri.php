@@ -2,9 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Domains\Shared\Traits\BelongsToTenant;
+use App\Models\Absensi;
+use App\Models\Kamar;
+use App\Models\Kelas;
+use App\Models\Pelanggaran;
+use App\Models\Wali;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Santri extends Model
 {
@@ -77,17 +83,70 @@ class Santri extends Model
             ->where('status', 'aktif');
     }
 
+    public function absensis(): HasMany 
+    {
+        // Parameter kedua adalah foreign key di tabel absensi
+        return $this->hasMany(Absensi::class, 'santri_id');
+    }
+
+    /**
+     * Relasi ke Sesi Absensi via Tabel Pivot
+     */
+    public function sesis(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(AbsensiSesi::class, 'absensi_sesi_santri', 'santri_id', 'absensi_sesi_id')
+                    ->using(AbsensiSesiSantri::class)
+                    ->withTimestamps();
+    }
+    /**
+     * Relasi ke data Pelanggaran
+     */
+    public function pelanggarans(): HasMany 
+    {
+        return $this->hasMany(Pelanggaran::class, 'santri_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Query Scopes
     |--------------------------------------------------------------------------
     */
 
+    public function scopeByPondok($query, $pondokId = null)
+    {
+        return $query->where('pondok_id', $pondokId ?? auth()->user()->pondok_id);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    public function scopeNonActive($query)
+    {
+        return $query->where('status', 'nonaktif');
+    }
+
+    public function scopeLulus($query)
+    {
+        return $query->where('status', 'lulus');
+    }
+
+    public function scopeKeluar($query)
+    {
+        return $query->where('status', 'keluar');
+    }
+
+    public function scopeSedangIzin($query)
+    {
+        return $query->where('status', 'izin');
+    }
+
     public function scopeSearch($query, $search)
     {
         return $query->where(function ($q) use ($search) {
             $q->where('nama_lengkap', 'like', "%{$search}%")
-            ->orWhere('nis', 'like', "%{$search}%");
+              ->orWhere('nis', 'like', "%{$search}%");
         });
     }
 }

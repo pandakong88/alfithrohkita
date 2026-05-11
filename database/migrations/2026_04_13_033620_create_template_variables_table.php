@@ -13,25 +13,17 @@ return new class extends Migration
     {
         Schema::create('template_variables', function (Blueprint $table) {
             $table->id();
-        
-            $table->string('key')->unique(); 
-            // contoh: santri.nama
-        
-            $table->string('label'); 
-            // contoh: Nama Santri
-        
-            $table->string('source')->nullable(); 
-            // contoh: santri.nama (mapping ke database)
-        
-            $table->enum('type', ['auto', 'manual'])->default('auto');
-            // auto = dari database
-            // manual = input user
-        
-            $table->string('input_type')->nullable(); 
-            // text, date, textarea, select (untuk manual input)
-        
+            $table->string('key')->unique(); // Contoh: santri.nama_lengkap
+            $table->string('label');         // Contoh: Nama Santri
+            $table->string('source')->nullable(); // Column name di DB
+            
+            // TAMBAHKAN INI:
+            $table->enum('type', ['auto', 'manual', 'formula']); 
+            $table->string('input_type')->nullable(); // text, date, select, textarea
+            $table->json('options')->nullable();      // Untuk isi dropdown (L/P, dll)
+            $table->boolean('is_required')->default(false);
+            
             $table->boolean('is_active')->default(true);
-        
             $table->timestamps();
         });
     }

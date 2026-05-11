@@ -12,30 +12,26 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('template_perizinans', function (Blueprint $table) {
-
             $table->id();
-        
+            
             $table->foreignId('pondok_id')
                 ->constrained()
                 ->cascadeOnDelete();
         
             $table->string('nama');
-        
-            $table->string('slug');
-        
+            $table->string('slug', 100); // Batasi panjang slug untuk optimasi index
             $table->text('deskripsi')->nullable();
-        
-            $table->longText('format_surat')->nullable();
-        
+            
+            // Pembeda sumber template
+            $table->enum('source_type', ['html', 'upload_pdf'])->default('html');
+            
+            $table->longText('format_surat')->nullable(); // Untuk mode HTML/Editor
+            $table->string('file_pdf')->nullable();       // Untuk mode Upload
+            
             $table->tinyInteger('layout_print')->default(1);
-
             $table->json('required_variables')->nullable();
-    
-            // Kolom untuk file PDF (jika user pilih upload)
-            $table->string('file_pdf')->nullable();
         
             $table->boolean('is_default')->default(false);
-        
             $table->boolean('is_active')->default(true);
         
             $table->foreignId('created_by')
@@ -43,9 +39,12 @@ return new class extends Migration
                 ->constrained('users')
                 ->nullOnDelete();
         
+            $table->softDeletes();
             $table->timestamps();
         
+            // Index gabungan untuk performa pencarian dan validasi unik per pondok
             $table->unique(['pondok_id', 'slug']);
+            $table->index(['pondok_id', 'is_active']); // Index tambahan untuk mempercepat list dropdown
         });
     }
 

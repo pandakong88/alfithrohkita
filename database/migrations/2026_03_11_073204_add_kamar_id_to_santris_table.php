@@ -15,6 +15,10 @@ return new class extends Migration {
                 ->after('wali_id')
                 ->constrained('kamars')
                 ->nullOnDelete();
+            $table->foreignId('kelas_id')
+                ->nullable()
+                ->constrained('kelas')
+                ->nullOnDelete();
         });
     }
 

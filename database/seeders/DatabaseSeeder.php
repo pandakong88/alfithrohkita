@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
             SantriHandbookSeeder::class,
             ImportFieldSeeder::class,
             TemplateVariableSeeder::class,
+            TemplatePerizinanSeeder::class,
+            AbsensiSesiSeeder::class,
         ]);
     }
 }
