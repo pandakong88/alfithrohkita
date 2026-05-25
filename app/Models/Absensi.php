@@ -52,26 +52,29 @@ class Absensi extends Model
     {
         static::saved(function ($absensi) {
             if ($absensi->status === 'alfa') {
-                // Gunakan updateOrCreate untuk mencegah duplikasi poin
-                Pelanggaran::updateOrCreate(
+                // Gunakan updateOrCreate mengarah ke model PelanggaranSantri
+                \App\Models\PelanggaranSantri::updateOrCreate(
                     ['absensi_id' => $absensi->id],
                     [
-                        'santri_id' => $absensi->santri_id,
-                        'pondok_id' => $absensi->pondok_id, // Penting untuk SaaS
+                        'santri_id'         => $absensi->santri_id,
+                        'pondok_id'         => $absensi->pondok_id,
+                        'kategori_sumber'   => 'otomatis', // Menandakan trigger dari sistem absensi
                         'judul_pelanggaran' => 'Ketidakhadiran Sesi ' . ($absensi->sesi->nama_sesi ?? 'Umum'),
-                        'poin' => 5,
-                        'tanggal' => $absensi->tanggal,
+                        'poin'              => 5, // Default poin untuk Alfa otomatis
+                        'tanggal'           => $absensi->tanggal,
+                        'user_id'           => auth()->id(), // Mencatat siapa admin yang mengabsen
                     ]
                 );
             } else {
-                // Jika status berubah jadi hadir/izin, hapus catatan pelanggaran terkait
-                Pelanggaran::where('absensi_id', $absensi->id)->delete();
+                // Jika status berubah jadi hadir/izin/sakit, hapus yang otomatis saja
+                \App\Models\PelanggaranSantri::where('absensi_id', $absensi->id)
+                    ->where('kategori_sumber', 'otomatis')
+                    ->delete();
             }
         });
 
-        // Tambahkan logic deleted untuk membersihkan pelanggaran jika data absensi di-delete
         static::deleted(function ($absensi) {
-            Pelanggaran::where('absensi_id', $absensi->id)->delete();
+            \App\Models\PelanggaranSantri::where('absensi_id', $absensi->id)->delete();
         });
     }
 }

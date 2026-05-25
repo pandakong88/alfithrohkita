@@ -6,7 +6,8 @@ use App\Domains\Shared\Traits\BelongsToTenant;
 use App\Models\Absensi;
 use App\Models\Kamar;
 use App\Models\Kelas;
-use App\Models\Pelanggaran;
+// use App\Models\Pelanggaran;
+use App\Models\PelanggaranSantri;
 use App\Models\Wali;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -101,9 +102,8 @@ class Santri extends Model
     /**
      * Relasi ke data Pelanggaran
      */
-    public function pelanggarans(): HasMany 
-    {
-        return $this->hasMany(Pelanggaran::class, 'santri_id');
+    public function pelanggaranSantri() {
+        return $this->hasMany(PelanggaranSantri::class, 'santri_id');
     }
 
     /*

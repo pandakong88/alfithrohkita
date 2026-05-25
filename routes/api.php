@@ -1,55 +1,66 @@
 <?php 
 
-use App\Http\Controllers\Api\AuthController; // Import AuthController
+use App\Http\Controllers\Api\AbsensiController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\KategoriPelanggaranController;
+use App\Http\Controllers\Api\PelanggaranSantriController;
 use App\Http\Controllers\Api\PerizinanController;
 use App\Http\Controllers\Api\SantriController;
 use App\Http\Controllers\Api\TemplateVariableController;
-use App\Http\Controllers\Api\AbsensiController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Public Routes (Tanpa Login)
+| Public Routes
 |--------------------------------------------------------------------------
 */
 Route::post('/login', [AuthController::class, 'login']);
 
-
 /*
 |--------------------------------------------------------------------------
-| Protected Routes (Wajib Login/Token)
+| Protected Routes (Sanctum)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Auth Logout
+    // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Grouping route santri
+    // Santri Data
     Route::prefix('santri')->group(function () {
         Route::get('/', [SantriController::class, 'index']);
         Route::get('/filters', [SantriController::class, 'getFilterData']);
         Route::get('/{id}', [SantriController::class, 'show']);
     });
 
-    // Grouping route mobile (Perizinan)
+    // Mobile Modules (Perizinan & Absensi)
     Route::prefix('mobile')->group(function () {
+        
+        // --- Perizinan Module ---
         Route::get('/templates', [PerizinanController::class, 'templates']);
         Route::get('/template-variables', [TemplateVariableController::class, 'index']);
-
         Route::get('/perizinan', [PerizinanController::class, 'index']);
         Route::get('/perizinan/{id}', [PerizinanController::class, 'show']);
-
         Route::post('/perizinan', [PerizinanController::class, 'store']);
-
         Route::post('/perizinan/scan', [PerizinanController::class, 'scan']);
         Route::post('/perizinan/{id}/manual', [PerizinanController::class, 'manual']);
 
-        Route::get('/absensi', [AbsensiController::class, 'index']);
-        Route::post('/absensi', [AbsensiController::class, 'store']);
+        // --- Absensi Module ---
+        Route::prefix('absensi')->group(function () {
+            Route::get('/sesi', [AbsensiController::class, 'getSesi']); // Daftar sesi untuk dashboard
+            Route::get('/santri/{sesi_id}', [AbsensiController::class, 'getSantriBySesi']); // List santri per sesi
+            Route::post('/scan', [AbsensiController::class, 'scanSantri']); // Ambil data santri via QR
+            Route::post('/simpan', [AbsensiController::class, 'store']); // Eksekusi absensi (Manual/QR)
+            Route::post('/hapus', [AbsensiController::class, 'destroy']);
+        });
+
+        // --- 2. Pelanggaran Module (Kategori Pelanggaran) ---
+        Route::apiResource('kategori-pelanggaran', KategoriPelanggaranController::class);
+
+        Route::post('pelanggaran', [PelanggaranSantriController::class, 'store']);
+        Route::put('pelanggaran/{id}', [PelanggaranSantriController::class, 'update']); // <-- Tambahkan ini
+        Route::delete('pelanggaran/{id}', [PelanggaranSantriController::class, 'destroy']);
 
     });
-
-
 
 });

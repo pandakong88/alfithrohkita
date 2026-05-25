@@ -19,7 +19,8 @@ class LogActivityAction
             'pondok_id'   => auth()->user()?->pondok_id,
             'causer_id'   => auth()->id(),
             'event'       => $event,
-            'subject_type'=> get_class($subject),
+            // Ditambahkan pengecekan is_object agar aman jika $subject diisi null
+            'subject_type'=> is_object($subject) ? get_class($subject) : null,
             'subject_id'  => $subject->id ?? null,
             'description' => $description,
             'old_values'  => $oldValues,
@@ -36,16 +37,12 @@ class LogActivityAction
      */
     public function logBatchAbsensi(int $sesiId, string $tanggal, int $total): void 
     {
-        \App\Models\ActivityLog::create([
+        ActivityLog::create([
             'pondok_id'   => auth()->user()?->pondok_id,
             'causer_id'   => auth()->id(),
             'event'       => 'absensi.batch_update',
-            
-            // Pakai nama model Absensi agar konsisten dengan format log lainnya
-            // ID diisi 0 karena tidak merujuk ke 1 baris absensi saja
             'subject_type'=> 'App\\Models\\Absensi', 
             'subject_id'  => 0, 
-            
             'description' => "Update massal absensi Sesi ID: {$sesiId} pada tanggal: {$tanggal}",
             'new_values'  => [
                 'total_data' => $total,
@@ -56,6 +53,30 @@ class LogActivityAction
                 'ip' => request()->ip(),
                 'user_agent' => request()->userAgent(),
                 'source' => 'absensi_batch_module'
+            ],
+        ]);
+    }
+
+    /**
+     * Method khusus untuk log pencatatan pelanggaran massal/batch
+     */
+    public function logBatchPelanggaran(int $total, string $sumber): void 
+    {
+        ActivityLog::create([
+            'pondok_id'   => auth()->user()?->pondok_id,
+            'causer_id'   => auth()->id(),
+            'event'       => 'pelanggaran.batch_create',
+            'subject_type'=> 'App\\Models\\PelanggaranSantri', 
+            'subject_id'  => 0, 
+            'description' => "Mencatat {$total} pelanggaran santri baru dari sumber: {$sumber}.",
+            'new_values'  => [
+                'total_records' => $total,
+                'sumber'        => $sumber,
+            ],
+            'meta'        => [
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'source' => 'pelanggaran_batch_module'
             ],
         ]);
     }

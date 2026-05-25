@@ -359,6 +359,75 @@ Route::middleware('auth')->group(function () {
 
             });
 
+            /*
+            |--------------------------------------------------------------------------
+            | PELANGGARAN & KESISWAAN MODULE
+            |--------------------------------------------------------------------------
+            */
+            
+            // MASTER KATEGORI PELANGGARAN
+            Route::middleware('permission:manage_pelanggaran') // Sesuaikan nama permission kesiswaanmu
+            ->prefix('kategori-pelanggaran')
+            ->name('kategori-pelanggaran.')
+            ->group(function () {
+                
+                // Index (Daftar Kategori Pelanggaran)
+                Route::get('/', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'index'
+                ])->name('index');
+
+                // Store & Update (Dual action dijadikan satu endpoint POST)
+                Route::post('/store', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'store'
+                ])->name('store');
+
+                // Delete Kategori
+                Route::delete('/{id}', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'destroy'
+                ])->name('destroy');
+
+                /** 
+                 * NB: Jika nanti sistem pelanggaranmu butuh fitur Soft Deletes (Restore & Force Delete) 
+                 * seperti absensi sesi, kamu tinggal uncomment baris di bawah ini:
+                 */
+                /*
+                Route::post('/{id}/restore', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'restore'
+                ])->name('restore');
+
+                Route::delete('/{id}/force', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'forceDelete'
+                ])->name('forceDelete');
+                */
+            });
+
+            // 2. CORE PENCATATAN PELANGGARAN SANTRI
+            Route::middleware('permission:manage_pelanggaran')
+            ->prefix('pelanggaran')
+            ->name('pelanggaran.')
+            ->group(function () {
+                
+                // Halaman utama riwayat & form pencatatan
+                Route::get('/', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'index'
+                ])->name('index');
+
+                // Simpan pencatatan (Tunggal maupun Massal hasil sebaran DTO)
+                Route::post('/store', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'store'
+                ])->name('store');
+
+                // Update detail pelanggaran per baris data
+                Route::put('/{id}', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'update'
+                ])->name('update');
+
+                // Batalkan/Hapus pencatatan pelanggaran
+                Route::delete('/{id}', [
+                    \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'destroy'
+                ])->name('destroy');
+            });
+
              /*
             |--------------------------------------------------------------------------
             | IMPORT TEMPLATE MANAGEMENT
