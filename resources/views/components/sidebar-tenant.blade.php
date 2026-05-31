@@ -18,7 +18,7 @@
         <div class="sidebar-content">
             <ul class="nav nav-secondary">
                 
-                {{-- Dashboard --}}
+                {{-- Dashboard: Bisa diakses semua user yang bisa masuk tenant --}}
                 <li class="nav-item {{ request()->routeIs('tenant.dashboard') ? 'active' : '' }}">
                     <a href="{{ route('tenant.dashboard') }}">
                         <i class="fas fa-home"></i>
@@ -26,12 +26,16 @@
                     </a>
                 </li>
 
+                {{-- Menampilkan Judul Section Hanya Jika User Punya Akses ke Salah Satu Menu di Dalamnya --}}
+                @if(auth()->user()->can('manage_santri') || auth()->user()->can('manage_wali') || auth()->user()->can('manage_perizinan') || auth()->user()->can('manage_absensi') || auth()->user()->can('manage_pelanggaran'))
                 <li class="nav-section">
                     <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
                     <h4 class="text-section">Manajemen Data</h4>
                 </li>
+                @endif
 
                 {{-- Data Santri --}}
+                @can('manage_santri')
                 <li class="nav-item {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuSantri">
                         <i class="fas fa-user-graduate"></i>
@@ -45,32 +49,33 @@
                                     <span class="sub-item">Daftar Santri</span>
                                 </a>
                             </li>
-                            <li class="{{ request()->routeIs('tenant.santri.snapshot.import') ? 'active' : '' }}">
-                                <a href="{{ route('tenant.santri.snapshot.import') }}">
-                                    <span class="sub-item">Snapshot Santri</span>
-                                </a>
-                            </li>
                         </ul>
                     </div>
                 </li>
+                @endcan
 
                 {{-- Data Wali --}}
+                @can('manage_wali')
                 <li class="nav-item {{ request()->routeIs('tenant.wali.*') ? 'active' : '' }}">
                     <a href="{{ route('tenant.wali.index') }}">
                         <i class="fas fa-user-friends"></i>
                         <p>Data Wali</p>
                     </a>
                 </li>
+                @endcan
 
-                {{-- Pedoman Santri --}}
+                {{-- Pedoman Santri (Mengikuti permission manage_santri atau buat publik jika diperlukan) --}}
+                @can('manage_santri')
                 <li class="nav-item {{ request()->routeIs('tenant.santri.handbook.*') ? 'active' : '' }}">
                     <a href="{{ route('tenant.santri.handbook.index') }}">
                         <i class="fas fa-book-open"></i>
                         <p>Pedoman Santri</p>
                     </a>
                 </li>
+                @endcan
 
                 {{-- Manajemen Perizinan --}}
+                @can('manage_perizinan')
                 <li class="nav-item {{ request()->routeIs('tenant.template-perizinan.*') || request()->routeIs('tenant.perizinan.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuPerizinan">
                         <i class="fas fa-file-contract"></i>
@@ -92,7 +97,10 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
+                {{-- Presensi Santri --}}
+                @can('manage_absensi')
                 <li class="nav-item {{ request()->routeIs('tenant.absensi.*') || request()->routeIs('tenant.absensi-sesi.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuAbsensi">
                         <i class="fas fa-calendar-check"></i>
@@ -114,7 +122,10 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
+                {{-- Pencatatan Pelanggaran --}}
+                @can('manage_pelanggaran')
                 <li class="nav-item {{ request()->routeIs('tenant.pelanggaran.*') || request()->routeIs('tenant.kategori-pelanggaran.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuPelanggaran">
                         <i class="fas fa-exclamation-triangle"></i>
@@ -136,13 +147,15 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
+                {{-- Fitur Import: Dikunci menggunakan permission manage_santri sesuai struktur route group Anda --}}
+                @can('manage_santri')
                 <li class="nav-section">
                     <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
                     <h4 class="text-section">Fitur Import</h4>
                 </li>
 
-                {{-- Sistem Import --}}
                 <li class="nav-item {{ request()->routeIs('tenant.import.*') || request()->routeIs('tenant.import-templates.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuImport">
                         <i class="fas fa-file-import"></i>
@@ -169,7 +182,10 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
+                {{-- Pengaturan Sistem --}}
+                @can('manage_users')
                 <li class="nav-section">
                     <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
                     <h4 class="text-section">Pengaturan Sistem</h4>
@@ -197,8 +213,9 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
-                {{-- Profil Pondok --}}
+                {{-- Profil Pondok: Bisa dikonfigurasi mengikuti permission admin utama jika perlu --}}
                 <li class="nav-item">
                     <a href="#">
                         <i class="fas fa-mosque"></i>
