@@ -22,11 +22,11 @@ class SantriHandbookSeeder extends Seeder
         $handbooks = [
             [
                 'pondok_id'    => $pondokId,
-                'version'      => '26.2.0',
-                'release_date' => '2026-02-28',
+                'version'      => '26.5.0',
+                'release_date' => '2026-05-31',
                 'status'       => 'published',
-                'description'  => 'Penambahan beberapa poin peraturan hasil rapat temun wali santri dengan pengurus pondok pada Februari 2026.',
-                'file_path'    => 'handbooks/7VDBy18ABSmJ2wm46pFPKquYZSv6bPK0o3qEXKks.pdf',
+                'description'  => 'Versi terbaru di tahun 2026 dengan berbagai pembaruan dan perbaikan',
+                'file_path'    => 'handbooks/pedoman-05-2026.pdf',
                 'created_by'   => $userId,
                 'created_at'   => '2026-03-10 06:15:30',
                 'updated_at'   => '2026-03-10 06:16:15',
