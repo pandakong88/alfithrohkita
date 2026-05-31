@@ -4,9 +4,9 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\Pondok; // Pastikan model ini ada
-use App\Models\User;
-use Illuminate\Support\Str;
+// use App\Models\Pondok; // Pastikan model ini ada
+// use App\Models\User;
+// use Illuminate\Support\Str;
 
 class SantriHandbookSeeder extends Seeder
 {
