@@ -12,19 +12,20 @@ class ReturnPerizinanAction
 
     public function execute(Perizinan $perizinan): Perizinan
     {
+        // Pastikan relasi santri sudah termuat agar tidak query ulang saat logging
+        $perizinan->loadMissing('santri');
+
         return DB::transaction(function () use ($perizinan) {
 
             // 1. CEK APAKAH BOLEH SCAN
-            $bolehScan = ($perizinan->status === 'aktif') || 
-                         ($perizinan->status === 'terlambat' && $perizinan->tanggal_kembali === null);
-
-            if (!$bolehScan) {
+            // Santri hanya boleh scan jika statusnya masih 'aktif' (di luar pondok)
+            if ($perizinan->status !== 'aktif') {
                 $pesan = match ($perizinan->status) {
                     'pending'    => 'Maaf, surat masih PENDING (belum disetujui).',
                     'kembali'    => 'Santri sudah dikonfirmasi KEMBALI sebelumnya.',
                     'dibatalkan' => 'Maaf, surat izin ini sudah DIBATALKAN.',
-                    'terlambat'  => 'Santri sudah diproses (TERLAMBAT).',
-                    default      => 'Status perizinan tidak valid.'
+                    'terlambat'  => 'Santri sudah diproses (TERLAMBAT).', // Jika Anda tetap mempertahankan status lama
+                    default      => 'Status perizinan tidak valid atau santri sudah berada di dalam pondok.'
                 };
                 throw new \Exception($pesan);
             }
@@ -33,13 +34,16 @@ class ReturnPerizinanAction
             $waktuScan = now();
             $perizinan->tanggal_kembali = $waktuScan;
 
-            // 3. HITUNG SELISIH TERLAMBAT
+            // 3. HITUNG SELISIH TERLAMBAT & TETAPKAN STATUS AKHIR 'kembali'
+            // Semua yang sukses scan statusnya adalah 'kembali'
+            $perizinan->status = 'kembali'; 
+
             if ($waktuScan->gt($perizinan->batas_kembali)) {
-                $perizinan->status = 'terlambat';
                 $perizinan->durasi_terlambat_menit = $perizinan->batas_kembali->diffInMinutes($waktuScan);
+                $keteranganLog = "terlambat {$perizinan->durasi_terlambat_menit} menit";
             } else {
-                $perizinan->status = 'kembali';
                 $perizinan->durasi_terlambat_menit = 0;
+                $keteranganLog = "tepat waktu";
             }
 
             $perizinan->save();
@@ -49,10 +53,14 @@ class ReturnPerizinanAction
 
             // 5. LOG & REFRESH
             $perizinan->refresh();
+            
+            // Menggunakan properti nama_lengkap sesuai dengan file Blade Anda sebelumnya
+            $namaSantri = $perizinan->santri->nama_lengkap ?? $perizinan->santri->nama;
+
             $this->logActivity->execute(
                 event: 'perizinan.returned',
                 subject: $perizinan,
-                description: "Santri {$perizinan->santri->nama} kembali dengan status {$perizinan->status}",
+                description: "Santri {$namaSantri} kembali ke pondok ({$keteranganLog}).",
                 newValues: $perizinan->getAttributes()
             );
 

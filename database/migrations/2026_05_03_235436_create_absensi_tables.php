@@ -30,7 +30,11 @@ return new class extends Migration {
             $table->date('tanggal');
             $table->enum('status', ['hadir', 'sakit', 'izin', 'alfa', 'terlambat']);
             $table->enum('metode', ['scan', 'manual'])->default('manual');
-            $table->foreignId('input_by')->constrained('users'); // Pengurus yang input
+            $table->foreignId('input_by')
+                ->nullable() // <--- Letakkan nullable di sini
+                ->constrained('users')
+                ->onDelete('set null'); // <--- Sangat direkomendasikan
+            
             $table->text('keterangan')->nullable();
             $table->softDeletes();
             $table->timestamps();

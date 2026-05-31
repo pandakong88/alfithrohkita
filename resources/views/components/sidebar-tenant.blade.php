@@ -115,6 +115,28 @@
                     </div>
                 </li>
 
+                <li class="nav-item {{ request()->routeIs('tenant.pelanggaran.*') || request()->routeIs('tenant.kategori-pelanggaran.*') ? 'active submenu' : '' }}">
+                    <a data-bs-toggle="collapse" href="#menuPelanggaran">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Pencatatan Pelanggaran</p>
+                        <span class="caret"></span>
+                    </a>
+                    <div class="collapse {{ request()->routeIs('tenant.pelanggaran.*') || request()->routeIs('tenant.kategori-pelanggaran.*') ? 'show' : '' }}" id="menuPelanggaran">
+                        <ul class="nav nav-collapse">
+                            <li class="{{ request()->routeIs('tenant.pelanggaran.index') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.pelanggaran.index') }}">
+                                    <span class="sub-item">Data Pelanggaran</span>
+                                </a>
+                            </li>
+                            <li class="{{ request()->routeIs('tenant.kategori-pelanggaran.index') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.kategori-pelanggaran.index') }}">
+                                    <span class="sub-item">Kategori Pelanggaran</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 <li class="nav-section">
                     <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
                     <h4 class="text-section">Fitur Import</h4>

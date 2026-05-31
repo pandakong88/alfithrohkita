@@ -36,7 +36,7 @@
                         @endphp
                         <div class="mb-3">
                             <div class="d-flex justify-content-between small mb-1">
-                                <span class="fw-semibold text-secondary">{{ \Str::limit($tp->judul_pelanggaran, 45) }}</span>
+                                <span class="fw-semibold text-secondary">{{ \Str::limit($tp->nama_kategori, 45) }}</span>
                                 <span class="badge bg-dark rounded-pill fw-bold">{{ $tp->total_cases }} Kasus</span>
                             </div>
                             <div class="progress rounded-pill" style="height: 8px; background-color: #e9ecef;">

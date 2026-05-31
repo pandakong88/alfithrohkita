@@ -36,18 +36,24 @@ class PelanggaranSantriController extends Controller
             ->latest()
             ->paginate(15);
     
-        // 2. WIDGET 1: Top 3 Pelanggaran Paling Sering Terjadi (Bulan Ini)
-        $topPelanggarans = PelanggaranSantri::where('pondok_id', $pondokId)
-            ->whereMonth('tanggal', now()->month)
-            ->whereYear('tanggal', now()->year)
-            ->select('judul_pelanggaran', \DB::raw('count(*) as total_cases'))
-            ->groupBy('judul_pelanggaran')
+        // 2. WIDGET 1: Top 3 Kategori Pelanggaran Paling Sering Terjadi (Bulan Ini)
+        $topPelanggarans = PelanggaranSantri::where('pelanggaran_santris.pondok_id', $pondokId)
+            ->join('kategori_pelanggarans', 'pelanggaran_santris.kategori_id', '=', 'kategori_pelanggarans.id')
+            ->whereMonth('pelanggaran_santris.tanggal', now()->month)
+            ->whereYear('pelanggaran_santris.tanggal', now()->year)
+            ->whereNull('kategori_pelanggarans.deleted_at') // Memastikan kategori yang belum dihapus
+            ->select(
+                'kategori_pelanggarans.nama_pelanggaran as nama_kategori', 
+                'kategori_pelanggarans.tingkat', // Opsional: jika ingin menampilkan tingkatnya (ringan/sedang/berat) di Blade
+                \DB::raw('count(*) as total_cases')
+            )
+            ->groupBy('pelanggaran_santris.kategori_id', 'kategori_pelanggarans.nama_pelanggaran', 'kategori_pelanggarans.tingkat')
             ->orderByDesc('total_cases')
             ->take(3)
             ->get();
-    
+
         // Hitung total kasus bulan ini untuk kalkulasi persentase progress bar di Blade
-        $totalKasusBulanIni = $topPelanggarans->sum('total_cases') ?: 1; 
+        $totalKasusBulanIni = $topPelanggarans->sum('total_cases') ?: 1;
     
         // 3. WIDGET 2: Top 3 Santri Indisipliner Teratas (Tanpa Filter Status Active)
         // Menggunakan subquery COALESCE agar menghitung semua akumulasi poin santri di pondok ini

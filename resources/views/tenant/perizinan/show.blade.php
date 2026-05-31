@@ -16,6 +16,15 @@
                 <a href="{{ route('tenant.perizinan.index') }}" class="btn btn-outline-secondary btn-round">
                     <i class="fa fa-arrow-left mr-2 me-2"></i> Kembali
                 </a>
+                @if($perizinan->status != 'kembali')
+                    <button type="button" onclick="konfirmasiKembali()" class="btn btn-success btn-round mr-2 me-2">
+                        <i class="fa fa-check mr-2 me-2"></i> Tandai Sudah Kembali
+                    </button>
+
+                    <form id="form-kembali" action="{{ route('tenant.perizinan.kembali', $perizinan->id) }}" method="POST" style="display: none;">
+                        @csrf
+                    </form>
+                @endif
             </div>
         </div>
     </div>
@@ -218,4 +227,34 @@
         .struk-footer { text-align: center; font-size: 10px; margin-top: 10px; }
     }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <script>
+    function konfirmasiKembali() {
+        Swal.fire({
+            title: 'Konfirmasi Kepulangan',
+            text: "Apakah Anda yakin santri ini sudah kembali ke pondok?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Sudah Kembali!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Tampilkan loading sebentar sebelum submit
+                Swal.fire({
+                    title: 'Memproses...',
+                    text: 'Mohon tunggu sebentar',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                });
+                
+                // Submit form tersembunyi
+                document.getElementById('form-kembali').submit();
+            }
+        })
+    }
+</script>
 @endsection
