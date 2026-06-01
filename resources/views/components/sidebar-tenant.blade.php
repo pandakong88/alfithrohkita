@@ -65,7 +65,7 @@
                 @endcan
 
                 {{-- Pedoman Santri (Mengikuti permission manage_santri atau buat publik jika diperlukan) --}}
-                @can('manage_santri')
+                @can('manage_cms')
                 <li class="nav-item {{ request()->routeIs('tenant.santri.handbook.*') ? 'active' : '' }}">
                     <a href="{{ route('tenant.santri.handbook.index') }}">
                         <i class="fas fa-book-open"></i>
