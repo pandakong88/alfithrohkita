@@ -24,7 +24,6 @@
             <div class="card card-round border-0 shadow-none mt-n1">
                 <div class="card-body p-3">
                     <div class="table-responsive">
-                        {{-- ID Tabel disamakan dengan script di bawah --}}
                         <table id="templateTable" class="display table table-head-bg-primary table-hover mb-0">
                             <thead>
                                 <tr>
@@ -74,6 +73,7 @@
                                                 <form action="{{ route('tenant.import-templates.destroy', $template->id) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
+                                                    <!-- Ubah type menjadi button agar dikontrol penuh oleh JavaScript Event -->
                                                     <button type="button" class="btn btn-link btn-danger btn-lg p-2 btn-delete" data-bs-toggle="tooltip" title="Hapus Template">
                                                         <i class="fa fa-times"></i>
                                                     </button>
@@ -92,7 +92,6 @@
 </div>
 
 <style>
-    /* Copas Style dari Santri biar Konsisten */
     .form-button-action { display: flex !important; justify-content: flex-end; gap: 2px; }
     .form-button-action i { font-size: 16px !important; }
     .card-round { border-radius: 12px !important; }
@@ -110,13 +109,9 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        // Inisialisasi DataTables (Samakan dengan Logic Santri)
+        // Inisialisasi DataTables (Sudah diperbaiki dari duplikasi baris)
         var table = $('#templateTable').DataTable({
-            var table = $('#templateTable').DataTable({
-            "order": [], // Tambahkan ini: Mematikan auto-sort saat load pertama kali
-            "pageLength": 10,
-            "language": {
-                // ... (sisanya tetap sama)
+            "order": [], 
             "pageLength": 10,
             "language": {
                 "search": "",
@@ -134,17 +129,19 @@
         // Event Delegation untuk tombol Delete (SweetAlert)
         $('body').on('click', '.btn-delete', function(e) {
             e.preventDefault();
+            
             var form = $(this).closest("form");
+            
             swal({
                 title: "Hapus Template?",
                 text: "Template yang dihapus tidak bisa dikembalikan.",
                 icon: "warning",
-                buttons: {
-                    cancel: { visible: true, text: "Batal", className: 'btn btn-focus' },
-                    confirm: { text: "Ya, Hapus", className: 'btn btn-danger' }
-                }
+                buttons: ["Batal", "Ya, Hapus"], 
+                dangerMode: true,
             }).then((willDelete) => {
-                if (willDelete) { form.submit(); }
+                if (willDelete) { 
+                    form.submit(); 
+                }
             });
         });
 
@@ -153,7 +150,7 @@
             $('[data-bs-toggle="tooltip"]').tooltip();
         });
 
-        // Notify
+        // Notify Alert Success
         let msg = $('#success-trigger').data('message');
         if(msg) {
             $.notify({

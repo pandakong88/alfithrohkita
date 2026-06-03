@@ -101,5 +101,17 @@ class ImportTemplateController extends Controller
 
         return back()->with('success','Import berhasil');
     }
+
+    public function destroy($id)
+    {
+        $template = ImportTemplate::where('pondok_id', auth()->user()->pondok_id)
+            ->findOrFail($id);
+
+        $template->delete();
+
+        return redirect()
+            ->route('tenant.import-templates.index')
+            ->with('success', 'Template berhasil dihapus');
+    }
     
 }
