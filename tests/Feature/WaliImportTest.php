@@ -170,4 +170,46 @@ class WaliImportTest extends TestCase
         $this->assertTrue($rows[3]->is_valid);
         $this->assertEquals('update', $rows[3]->mode);
     }
+
+    public function test_wali_import_normalization_and_strict_validation(): void
+    {
+        // Create an uploaded file with:
+        // Row 1: Valid data, but scientific notation in NIK, phone missing 0, and phone starting with 628.
+        // Row 2: Invalid data, invalid NIK format, invalid phone format.
+        $file = $this->createCsvFile(
+            ['nama', 'nik', 'no_hp', 'alamat', 'pekerjaan'],
+            [
+                ['Wali Normal 1', '3.20101010101E+15', '81234567890', 'Alamat A', 'Pekerjaan A'],
+                ['Wali Normal 2', '3201010101010002', '6289876543210', 'Alamat B', 'Pekerjaan B'],
+                ['Wali Salah', '12345', '12345', 'Alamat C', 'Pekerjaan C'],
+            ]
+        );
+
+        $previewAction = new ImportWaliPreviewAction();
+        $batch = $previewAction->execute($file);
+
+        $this->assertNotNull($batch);
+        $this->assertEquals(3, $batch->total_rows);
+        $this->assertEquals(2, $batch->valid_rows);
+        $this->assertEquals(1, $batch->invalid_rows);
+
+        $rows = $batch->rows()->orderBy('row_number')->get();
+
+        // Row 1 (Valid row with NIK scientific notation & Phone normalization)
+        $this->assertTrue((bool)$rows[0]->is_valid);
+        $payload1 = $rows[0]->payload;
+        $this->assertEquals('3201010101010000', $payload1['nik']); // Recovered scientific notation
+        $this->assertEquals('081234567890', $payload1['no_hp']); // Normalized phone
+
+        // Row 2 (Valid row with 628 phone format normalization)
+        $this->assertTrue((bool)$rows[1]->is_valid);
+        $payload2 = $rows[1]->payload;
+        $this->assertEquals('089876543210', $payload2['no_hp']); // Normalized phone
+
+        // Row 3 (Invalid row due to NIK and phone format)
+        $this->assertFalse((bool)$rows[2]->is_valid);
+        $errors3 = $rows[2]->errors;
+        $this->assertEquals('NIK harus berupa 16 digit angka', $errors3['nik']);
+        $this->assertEquals('No HP harus berupa nomor ponsel Indonesia yang valid (dimulai dengan 08, 10-15 digit)', $errors3['no_hp']);
+    }
 }

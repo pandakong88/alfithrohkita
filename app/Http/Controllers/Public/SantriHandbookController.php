@@ -3,24 +3,39 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pondok;
 use App\Models\SantriHandbook;
 
 class SantriHandbookController extends Controller
 {
-    public function index()
+    public function index($pondok_slug)
     {
-        $latest = SantriHandbook::where('status', 'published')
+        $pondok = Pondok::where('slug', $pondok_slug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $latest = SantriHandbook::where('pondok_id', $pondok->id)
+            ->where('status', 'published')
             ->latest('release_date')
             ->first();
 
-        $history = SantriHandbook::orderByDesc('release_date')
+        $history = SantriHandbook::where('pondok_id', $pondok->id)
+            ->orderByDesc('release_date')
             ->get();
 
-        return view('public.handbook.index', compact('latest', 'history'));
+        return view('public.handbook.index', compact('latest', 'history', 'pondok'));
     }
 
-    public function download(SantriHandbook $handbook)
+    public function download($pondok_slug, SantriHandbook $handbook)
     {
+        $pondok = Pondok::where('slug', $pondok_slug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        if ($handbook->pondok_id !== $pondok->id) {
+            abort(404, 'Buku pedoman tidak ditemukan untuk pondok ini.');
+        }
+
         $filePath = public_path($handbook->file_path);
 
         if (!file_exists($filePath)) {
@@ -32,9 +47,13 @@ class SantriHandbookController extends Controller
         return response()->download($filePath, $downloadName);
     }
 
-    public function preview($id)
+    public function preview($pondok_slug, $id)
     {
-        $handbook = SantriHandbook::findOrFail($id);
+        $pondok = Pondok::where('slug', $pondok_slug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $handbook = SantriHandbook::where('pondok_id', $pondok->id)->findOrFail($id);
 
         $filePath = public_path($handbook->file_path);
 

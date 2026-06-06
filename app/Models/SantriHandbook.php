@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Domains\Shared\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class SantriHandbook extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'pondok_id',
         'version',

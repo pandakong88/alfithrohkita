@@ -4,8 +4,9 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Public\SantriHandbookController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/pedoman-santri', [SantriHandbookController::class, 'index'])->name('pedoman-santri');
-Route::get('/pedoman-santri', [SantriHandbookController::class, 'download'])->name('download');
+Route::get('/{pondok_slug}/pedoman-santri', [SantriHandbookController::class, 'index'])->name('public.handbook.index');
+Route::get('/{pondok_slug}/pedoman-santri/{handbook}/download', [SantriHandbookController::class, 'download'])->name('public.handbook.download');
+Route::get('/{pondok_slug}/pedoman-santri/{handbook}/preview', [SantriHandbookController::class, 'preview'])->name('handbook.preview');
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])

@@ -208,7 +208,7 @@ class ImportTest extends TestCase
         $file1 = $this->createCsvFile(
             ['NIS', 'Nama Santri', 'Alamat Santri', 'Nama Wali', 'NIK Wali'],
             [
-                ['NIS001', 'Santri Pertama', 'Alamat A', 'Wali Pertama', 'NIK12345'],
+                ['NIS001', 'Santri Pertama', 'Alamat A', 'Wali Pertama', '1234567890123456'],
             ]
         );
 
@@ -232,7 +232,7 @@ class ImportTest extends TestCase
         $this->assertEquals('Alamat A', $santri->alamat);
 
         // Verify Wali saved
-        $wali = Wali::where('pondok_id', $this->pondok->id)->where('nik', 'NIK12345')->first();
+        $wali = Wali::where('pondok_id', $this->pondok->id)->where('nik', '1234567890123456')->first();
         $this->assertNotNull($wali);
         $this->assertEquals('Wali Pertama', $wali->nama);
         $this->assertEquals($wali->id, $santri->wali_id);
@@ -241,7 +241,7 @@ class ImportTest extends TestCase
         $file2 = $this->createCsvFile(
             ['NIS', 'Nama Santri', 'Alamat Santri', 'Nama Wali', 'NIK Wali'],
             [
-                ['NIS001', 'Santri Pertama Updated', 'Alamat A Updated', 'Wali Pertama', 'NIK12345'],
+                ['NIS001', 'Santri Pertama Updated', 'Alamat A Updated', 'Wali Pertama', '1234567890123456'],
             ]
         );
 
@@ -624,5 +624,56 @@ class ImportTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertNotNull($response->getFile());
+    }
+
+    public function test_excel_import_normalization_and_strict_validation(): void
+    {
+        $this->setupTemplateFields(['nis', 'nama_lengkap', 'no_hp', 'tanggal_lahir', 'wali_nik', 'wali_no_hp']);
+
+        // Create an uploaded file with:
+        // Row 1: Valid data, but has scientific notation in NIK, phone number missing 0, and date in DD/MM/YYYY format.
+        // Row 2: Invalid data, has duplicate NIS (internal duplicate), invalid date format, invalid NIK format, invalid phone format.
+        $file = $this->createCsvFile(
+            ['NIS', 'Nama Santri', 'No HP Santri', 'Tanggal Lahir', 'NIK Wali', 'No HP Wali'],
+            [
+                ['NIS901', 'Santri Normal', '81234567890', '25/12/2005', '3.20101010101E+15', '6289876543210'],
+                ['NIS901', 'Santri Duplicate', '0812abc', '2005-99-99', '12345', '12345'], // Duplicate NIS, invalid formats
+            ]
+        );
+
+        $previewAction = new PreviewImportAction();
+        $batch = $previewAction->execute(
+            $this->pondok->id,
+            $this->user->id,
+            $this->template->id,
+            $file,
+            'create',
+            'update'
+        );
+
+        $this->assertNotNull($batch);
+        $this->assertEquals(2, $batch->total_rows);
+        $this->assertEquals(1, $batch->valid_rows);
+        $this->assertEquals(1, $batch->invalid_rows);
+
+        $rows = $batch->rows()->orderBy('row_number')->get();
+
+        // Row 1 (Valid row) assertions:
+        $this->assertTrue((bool)$rows[0]->is_valid);
+        $payload1 = $rows[0]->payload;
+        $this->assertEquals('081234567890', $payload1['no_hp']); // Normalized phone
+        $this->assertEquals('2005-12-25', $payload1['tanggal_lahir']); // Normalized date
+        $this->assertEquals('3201010101010000', $payload1['wali_nik']); // Recovered scientific notation (rounded float)
+        $this->assertEquals('089876543210', $payload1['wali_no_hp']); // Normalized phone
+
+        // Row 2 (Invalid row) assertions:
+        $this->assertFalse((bool)$rows[1]->is_valid);
+        $errors2 = $rows[1]->errors;
+
+        $this->assertContains('NIS ganda ditemukan dalam file Excel.', $errors2);
+        $this->assertContains('NIK Wali harus berupa 16 digit angka.', $errors2);
+        $this->assertContains('No HP Santri harus berupa nomor ponsel Indonesia yang valid (dimulai dengan 08, 10-15 digit).', $errors2);
+        $this->assertContains('No HP Wali harus berupa nomor ponsel Indonesia yang valid (dimulai dengan 08, 10-15 digit).', $errors2);
+        $this->assertContains('Format tanggal pada kolom Tanggal Lahir tidak valid. Gunakan format YYYY-MM-DD atau DD/MM/YYYY.', $errors2);
     }
 }

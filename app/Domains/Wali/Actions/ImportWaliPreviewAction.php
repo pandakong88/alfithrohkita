@@ -69,7 +69,28 @@ class ImportWaliPreviewAction
                     $value = $row[$colIndex] ?? null;
 
                     if ($value !== null && $value !== '') {
-                        $payload[$columnName] = trim((string) $value);
+                        $valueStr = trim((string) $value);
+
+                        // Fix scientific notation for NIK & No HP
+                        if (($columnName === 'nik' || $columnName === 'no_hp') && is_numeric($valueStr)) {
+                            if (strpos(strtolower($valueStr), 'e') !== false) {
+                                $valueStr = number_format((float)$valueStr, 0, '', '');
+                            } elseif (is_float($value) && $value == (int)$value) {
+                                $valueStr = (string)(int)$value;
+                            }
+                        }
+
+                        // Normalize phone number
+                        if ($columnName === 'no_hp') {
+                            $valueStr = preg_replace('/[^0-9]/', '', $valueStr);
+                            if (str_starts_with($valueStr, '628')) {
+                                $valueStr = '0' . substr($valueStr, 2);
+                            } elseif (str_starts_with($valueStr, '8') && strlen($valueStr) >= 9 && strlen($valueStr) <= 12) {
+                                $valueStr = '0' . $valueStr;
+                            }
+                        }
+
+                        $payload[$columnName] = $valueStr;
                     }
                 }
 
@@ -91,8 +112,22 @@ class ImportWaliPreviewAction
                     $errors['nama'] = 'Nama wajib diisi';
                 }
 
-                // Check NIK duplicates in Excel
+                // Validate NIK format
                 if (!empty($payload['nik'])) {
+                    if (!preg_match('/^[0-9]{16}$/', $payload['nik'])) {
+                        $errors['nik'] = 'NIK harus berupa 16 digit angka';
+                    }
+                }
+
+                // Validate Phone format
+                if (!empty($payload['no_hp'])) {
+                    if (!preg_match('/^08[0-9]{8,13}$/', $payload['no_hp'])) {
+                        $errors['no_hp'] = 'No HP harus berupa nomor ponsel Indonesia yang valid (dimulai dengan 08, 10-15 digit)';
+                    }
+                }
+
+                // Check NIK duplicates in Excel
+                if (!empty($payload['nik']) && !isset($errors['nik'])) {
                     if (in_array($payload['nik'], $seenNiks)) {
                         $errors['nik'] = 'NIK ganda ditemukan dalam file Excel';
                     } else {
@@ -101,7 +136,7 @@ class ImportWaliPreviewAction
                 }
 
                 // Check No HP duplicates in Excel
-                if (!empty($payload['no_hp'])) {
+                if (!empty($payload['no_hp']) && !isset($errors['no_hp'])) {
                     if (in_array($payload['no_hp'], $seenNoHps)) {
                         $errors['no_hp'] = 'No HP ganda ditemukan dalam file Excel';
                     } else {

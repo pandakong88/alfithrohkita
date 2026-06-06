@@ -192,6 +192,7 @@ class PreviewImportAction
             $valid = 0;
             $invalid = 0;
             $rowsToInsert = [];
+            $seenNis = [];
 
             // Skip baris header
             foreach ($rows->skip($skipRows) as $index => $row) {
@@ -218,9 +219,71 @@ class PreviewImportAction
                         }
                     }
 
-                    // Paksa string untuk nomor panjang (NIS, NISN, No HP) agar tidak berubah jadi format scientific/float
+                    // Paksa string untuk nomor panjang (NIS, NIK, No HP) agar tidak berubah jadi format scientific/float
                     if (is_numeric($value)) {
-                        $value = (string) $value;
+                        $valueStr = (string) $value;
+                        if (strpos(strtolower($valueStr), 'e') !== false) {
+                            $value = number_format((float)$value, 0, '', '');
+                        } elseif (is_float($value) && $value == (int)$value) {
+                            $value = (string)(int)$value;
+                        } else {
+                            $value = $valueStr;
+                        }
+                    }
+
+                    // Normalize phone numbers
+                    if (($field->field_key === 'no_hp' || $field->field_key === 'wali_no_hp') && !empty($value)) {
+                        $cleanPhone = preg_replace('/[^0-9]/', '', (string)$value);
+                        if (str_starts_with($cleanPhone, '628')) {
+                            $value = '0' . substr($cleanPhone, 2);
+                        } elseif (str_starts_with($cleanPhone, '8') && strlen($cleanPhone) >= 9 && strlen($cleanPhone) <= 12) {
+                            $value = '0' . $cleanPhone;
+                        } else {
+                            $value = $cleanPhone;
+                        }
+                    }
+
+                    // Normalize date values
+                    if (in_array($field->field_key, ['tanggal_lahir', 'tanggal_masuk', 'tanggal_keluar']) && !empty($value)) {
+                        if ($value instanceof \DateTimeInterface) {
+                            $value = $value->format('Y-m-d');
+                        } else {
+                            $valueStr = trim((string)$value);
+                            $parsedDate = null;
+
+                            // Check for Excel serial number
+                            if (is_numeric($valueStr) && (float)$valueStr > 1 && (float)$valueStr < 100000) {
+                                try {
+                                    $dt = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float)$valueStr);
+                                    $parsedDate = $dt->format('Y-m-d');
+                                } catch (\Exception $e) {
+                                }
+                            }
+
+                            if (!$parsedDate) {
+                                $formats = ['Y-m-d', 'd/m/Y', 'd-m-Y', 'Y/m/d', 'd M Y', 'd F Y'];
+                                foreach ($formats as $format) {
+                                    try {
+                                        $parsed = \Carbon\Carbon::createFromFormat($format, $valueStr);
+                                        if ($parsed && $parsed->format($format) === $valueStr) {
+                                            $parsedDate = $parsed->format('Y-m-d');
+                                            break;
+                                        }
+                                    } catch (\Exception $e) {
+                                    }
+                                }
+                            }
+
+                            if (!$parsedDate) {
+                                try {
+                                    $parsed = \Carbon\Carbon::parse($valueStr);
+                                    $parsedDate = $parsed->format('Y-m-d');
+                                } catch (\Exception $e) {
+                                }
+                            }
+
+                            $value = $parsedDate ?: 'invalid';
+                        }
                     }
 
                     // Masukkan ke payload menggunakan field_key database asli (misal: 'nama_santri', 'nis')
@@ -248,6 +311,15 @@ class PreviewImportAction
                 if ($hasSantriData || array_key_exists('nis', $payload)) {
                     if (empty($payload['nis'])) {
                         $errors[] = 'NIS (Nomor Induk Santri) wajib diisi untuk memasukkan data Santri.';
+                    }
+                }
+
+                // Check duplicate NIS inside the Excel file
+                if (!empty($payload['nis'])) {
+                    if (in_array($payload['nis'], $seenNis)) {
+                        $errors[] = 'NIS ganda ditemukan dalam file Excel.';
+                    } else {
+                        $seenNis[] = $payload['nis'];
                     }
                 }
 
@@ -293,6 +365,34 @@ class PreviewImportAction
                         $errors[] = 'Status Santri harus berupa salah satu dari: active, nonaktif, lulus, keluar, izin.';
                     } else {
                         $payload['status'] = $statusVal;
+                    }
+                }
+
+                // Validate NIK format
+                if (!empty($payload['wali_nik'])) {
+                    if (!preg_match('/^[0-9]{16}$/', $payload['wali_nik'])) {
+                        $errors[] = 'NIK Wali harus berupa 16 digit angka.';
+                    }
+                }
+
+                // Validate phone formats
+                if (!empty($payload['no_hp'])) {
+                    if (!preg_match('/^08[0-9]{8,13}$/', $payload['no_hp'])) {
+                        $errors[] = 'No HP Santri harus berupa nomor ponsel Indonesia yang valid (dimulai dengan 08, 10-15 digit).';
+                    }
+                }
+                if (!empty($payload['wali_no_hp'])) {
+                    if (!preg_match('/^08[0-9]{8,13}$/', $payload['wali_no_hp'])) {
+                        $errors[] = 'No HP Wali harus berupa nomor ponsel Indonesia yang valid (dimulai dengan 08, 10-15 digit).';
+                    }
+                }
+
+                // Validate date formats
+                foreach (['tanggal_lahir', 'tanggal_masuk', 'tanggal_keluar'] as $dateField) {
+                    if (!empty($payload[$dateField])) {
+                        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $payload[$dateField])) {
+                            $errors[] = "Format tanggal pada kolom " . ($dateField === 'tanggal_lahir' ? 'Tanggal Lahir' : ($dateField === 'tanggal_masuk' ? 'Tanggal Masuk' : 'Tanggal Keluar')) . " tidak valid. Gunakan format YYYY-MM-DD atau DD/MM/YYYY.";
+                        }
                     }
                 }
 

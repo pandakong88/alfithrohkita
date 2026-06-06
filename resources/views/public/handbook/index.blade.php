@@ -119,7 +119,7 @@
                             </p>
                             
                             <div class="d-flex flex-column flex-sm-row gap-3">
-                                <a href="{{ route('public.handbook.download', $latest->id) }}" class="btn btn-download-primary text-white">
+                                <a href="{{ route('public.handbook.download', ['pondok_slug' => $pondok->slug, 'handbook' => $latest->id]) }}" class="btn btn-download-primary text-white">
                                     <i class="fas fa-download me-2"></i>Download PDF
                                 </a>
                                 <button type="button" class="btn btn-preview-outline" data-bs-toggle="modal" data-bs-target="#previewModal">
@@ -149,11 +149,11 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <iframe class="preview-iframe" src="{{ route('handbook.preview', $latest->id) }}"></iframe>
+                    <iframe class="preview-iframe" src="{{ route('handbook.preview', ['pondok_slug' => $pondok->slug, 'handbook' => $latest->id]) }}"></iframe>
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0">
                     <p class="small text-muted me-auto">Dokumen ini bersifat resmi. Silakan download untuk akses offline.</p>
-                    <a href="{{ route('public.handbook.download', $latest->id) }}" class="btn btn-primary rounded-pill px-4">Download PDF</a>
+                    <a href="{{ route('public.handbook.download', ['pondok_slug' => $pondok->slug, 'handbook' => $latest->id]) }}" class="btn btn-primary rounded-pill px-4">Download PDF</a>
                 </div>
             </div>
         </div>
@@ -193,7 +193,7 @@
                                 <span class="text-muted small">{{ Str::limit($item->description ?? 'Pembaruan sistem dan tata bahasa', 60) }}</span>
                             </td>
                             <td class="text-end px-4">
-                                <a href="{{ route('public.handbook.download', $item->id) }}" class="btn btn-sm btn-light rounded-pill px-3 fw-bold text-primary border">
+                                <a href="{{ route('public.handbook.download', ['pondok_slug' => $pondok->slug, 'handbook' => $item->id]) }}" class="btn btn-sm btn-light rounded-pill px-3 fw-bold text-primary border">
                                     <i class="fas fa-download me-1"></i> Unduh
                                 </a>
                             </td>
