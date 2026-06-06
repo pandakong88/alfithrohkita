@@ -40,6 +40,8 @@ class CreateSantriAction
                 $santri = Santri::create([
                     'pondok_id' => $pondokId,
                     'wali_id' => $data->wali_id,
+                    'kamar_id' => $data->kamar_id,
+                    'kelas_id' => $data->kelas_id,
                     'nis' => $data->nis,
                     'nama_lengkap' => $data->nama_lengkap,
                     'jenis_kelamin' => $data->jenis_kelamin,

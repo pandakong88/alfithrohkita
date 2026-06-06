@@ -11,16 +11,21 @@ use App\Models\ImportBatch;
 use App\Models\ImportTemplate;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Jobs\ProcessImportJob;
 
 class ImportController extends Controller
 {
     public function index()
     {
-        $templates = ImportTemplate::where('pondok_id', auth()->user()->pondok_id)
+        $templates = ImportTemplate::with('fields')
+            ->where('pondok_id', auth()->user()->pondok_id)
             ->orderBy('nama_template')
             ->get();
-    
-        return view('tenant.import.upload', compact('templates'));
+        
+        // Ambil default template (bisa yang pertama atau yang namanya 'Default')
+        $defaultTemplate = $templates->first(); 
+        
+        return view('tenant.import.upload', compact('templates', 'defaultTemplate'));
     }
     /*
     |--------------------------------------------------------------------------
@@ -32,19 +37,24 @@ class ImportController extends Controller
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,csv',
-            'template_id' => 'required'
+            'template_id' => 'required|exists:import_templates,id' // Tambahan validasi
         ]);
 
-        $batch = app(PreviewImportAction::class)->execute(
-            auth()->user()->pondok_id,
-            auth()->id(),
-            $request->template_id,
-            $request->file('file'),
-            $request->mode_missing_nis,
-            $request->mode_existing_nis
-        );
+        try {
+            $batch = app(PreviewImportAction::class)->execute(
+                auth()->user()->pondok_id,
+                auth()->id(),
+                $request->template_id,
+                $request->file('file'),
+                $request->mode_missing_nis ?? 'error', // Default aman
+                $request->mode_existing_nis ?? 'update'
+            );
 
-        return redirect()->route('tenant.import.show', $batch->id);
+            return redirect()->route('tenant.import.show', $batch->id)
+                             ->with('success', 'File berhasil dipreview');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal memproses file: ' . $e->getMessage());
+        }
     }
 
 
@@ -72,11 +82,31 @@ class ImportController extends Controller
 
     public function commit($batchId)
     {
-        app(CommitImportAction::class)->execute($batchId);
+        $batch = ImportBatch::where('pondok_id', auth()->user()->pondok_id)
+            ->findOrFail($batchId);
 
-        return redirect()
-            ->route('tenant.import.show', $batchId)
-            ->with('success', 'Import berhasil dijalankan');
+        if ($batch->status === 'committed') {
+            return back()->with('error', 'Batch ini sudah pernah di-commit.');
+        }
+
+        try {
+            if ($batch->total_rows > 100) {
+                ProcessImportJob::dispatch($batchId, auth()->id());
+                return redirect()
+                    ->route('tenant.import.history')
+                    ->with('success', 'Batch dengan data besar sedang diproses di latar belakang. Silakan cek halaman ini secara berkala.');
+            }
+
+            // Kita bungkus di controller agar lebih aman
+            app(CommitImportAction::class)->execute($batchId);
+
+            return redirect()
+                ->route('tenant.import.detail', $batchId) // Redirect ke detail supaya bisa lihat hasil perubahannya
+                ->with('success', 'Import berhasil dijalankan dan data sudah tersinkronisasi.');
+        } catch (\Exception $e) {
+            // Log errornya di sini jika perlu
+            return back()->with('error', 'Terjadi kesalahan saat commit: ' . $e->getMessage());
+        }
     }
 
     public function history()

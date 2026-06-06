@@ -14,6 +14,8 @@ class CreateSantriData
         public ?string $no_hp,
         public ?string $tanggal_masuk,
         public ?int $wali_id,
+        public ?int $kamar_id,
+        public ?int $kelas_id,
     ) {}
 
     public static function fromArray(array $data): self
@@ -28,6 +30,8 @@ class CreateSantriData
             no_hp: $data['no_hp'] ?? null,
             tanggal_masuk: $data['tanggal_masuk'] ?? null,
             wali_id: $data['wali_id'] ?? null,
+            kamar_id: $data['kamar_id'] ?? null,
+            kelas_id: $data['kelas_id'] ?? null,
         );
     }
 }

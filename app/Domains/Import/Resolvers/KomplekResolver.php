@@ -6,52 +6,55 @@ use App\Models\Komplek;
 
 class KomplekResolver
 {
+    protected array $resolvedCache = [];
+    protected ?string $currentCacheKey = null;
+
     /**
      * Resolve Komplek
-     * Cari komplek berdasarkan pondok + nama. Jika tidak ada → buat baru.
+     * Gunakan firstOrNew untuk efisiensi
      */
     public function resolve(int $pondokId, ?array $payload): ?Komplek
     {
-        // Null-safety check agar tidak fatal error jika payload null atau key 'komplek' kosong
         if (empty($payload) || empty($payload['komplek'])) {
             return null;
         }
 
         $namaKomplek = trim($payload['komplek']);
+        $this->currentCacheKey = "komplek_{$pondokId}_" . strtolower($namaKomplek);
+
+        if (isset($this->resolvedCache[$this->currentCacheKey])) {
+            return $this->resolvedCache[$this->currentCacheKey];
+        }
 
         $komplek = Komplek::where('pondok_id', $pondokId)
             ->where('nama', $namaKomplek)
-            ->first();
-
-        if (!$komplek) {
-            $komplek = Komplek::create([
+            ->first() ?? new Komplek([
                 'pondok_id' => $pondokId,
                 'nama'      => $namaKomplek
             ]);
-        }
 
         return $komplek;
     }
 
     /**
      * Update Komplek
-     * Sinkronisasi data model dengan payload terbaru saat commit import.
+     * Harus return objek Komplek (bukan bool) untuk konsistensi di CommitImportAction
      */
-    public function update(Komplek $model, array $payload): bool
+    public function update(Komplek $model, array $payload): Komplek
     {
-        if (empty($payload['komplek'])) {
-            return false;
+        if (array_key_exists('komplek', $payload)) {
+            $model->nama = trim($payload['komplek']);
         }
 
-        $namaBaru = trim($payload['komplek']);
-
-        // Hanya update jika namanya berubah
-        if ($model->nama !== $namaBaru) {
-            return $model->update([
-                'nama' => $namaBaru
-            ]);
+        // Hanya save ke database jika ada perubahan atau data baru
+        if ($model->isDirty() || !$model->exists) {
+            $model->save();
         }
 
-        return true;
+        if ($this->currentCacheKey) {
+            $this->resolvedCache[$this->currentCacheKey] = $model;
+        }
+
+        return $model;
     }
 }

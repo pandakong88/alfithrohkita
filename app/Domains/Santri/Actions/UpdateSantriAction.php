@@ -50,6 +50,8 @@ class UpdateSantriAction
                     'tanggal_masuk' => $data->tanggal_masuk,
                     'tanggal_keluar' => $data->tanggal_keluar,
                     'wali_id' => $data->wali_id,
+                    'kamar_id' => $data->kamar_id,
+                    'kelas_id' => $data->kelas_id,
                     'updated_by' => $user->id,
                 ]);
             } catch (\Illuminate\Database\QueryException $e) {

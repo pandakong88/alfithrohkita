@@ -1,7 +1,6 @@
 @extends('layouts.tenant')
 
 @section('content')
-<div class="page-inner" style="padding-top: 15px !important;">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold mb-1">Registrasi Wali Baru</h3>
@@ -104,7 +103,6 @@
             </div>
         </div>
     </form>
-</div>
 
 <style>
     .card { border-radius: 12px; }

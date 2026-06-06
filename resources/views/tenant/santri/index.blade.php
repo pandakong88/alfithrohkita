@@ -1,184 +1,343 @@
 @extends('layouts.tenant')
 
+@section('title', 'Database Santri')
+
 @section('content')
-<div class="page-inner" style="padding-top: 15px !important;">
-    <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row mb-3">
-        <div>
-            <h3 class="fw-bold mb-1">Database Santri</h3>
-            <h6 class="op-7 mb-0">Manajemen data santri, NIS, dan status akademik.</h6>
+@php
+    // Calculate dashboard statistics from collection
+    $totalSantri = $santris->count();
+    $aktifCount = $santris->filter(fn($s) => in_array(strtolower($s->status), ['active', 'aktif']))->count();
+    $putraCount = $santris->filter(fn($s) => strtolower($s->jenis_kelamin) === 'l')->count();
+    $putriCount = $santris->filter(fn($s) => strtolower($s->jenis_kelamin) === 'p')->count();
+
+    // Friendly status styling maps
+    $statusMap = [
+        'active' => ['label' => 'Aktif', 'class' => 'bg-success-soft text-success border-success-subtle'],
+        'Active' => ['label' => 'Aktif', 'class' => 'bg-success-soft text-success border-success-subtle'],
+        'Aktif' => ['label' => 'Aktif', 'class' => 'bg-success-soft text-success border-success-subtle'],
+        'nonaktif' => ['label' => 'Non-Aktif', 'class' => 'bg-secondary-soft text-secondary border-secondary-subtle'],
+        'Nonaktif' => ['label' => 'Non-Aktif', 'class' => 'bg-secondary-soft text-secondary border-secondary-subtle'],
+        'lulus' => ['label' => 'Lulus', 'class' => 'bg-primary-soft text-primary border-primary-subtle'],
+        'Lulus' => ['label' => 'Lulus', 'class' => 'bg-primary-soft text-primary border-primary-subtle'],
+        'keluar' => ['label' => 'Keluar', 'class' => 'bg-danger-soft text-danger border-danger-subtle'],
+        'Keluar' => ['label' => 'Keluar', 'class' => 'bg-danger-soft text-danger border-danger-subtle'],
+        'pindah' => ['label' => 'Pindah', 'class' => 'bg-warning-soft text-warning border-warning-subtle'],
+        'Pindah' => ['label' => 'Pindah', 'class' => 'bg-warning-soft text-warning border-warning-subtle'],
+    ];
+@endphp
+
+{{-- HEADER SECTION --}}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div class="d-flex align-items-center">
+        <div class="icon-avatar bg-primary-gradient text-white me-3 shadow-sm">
+            <i class="fas fa-user-graduate fa-lg"></i>
         </div>
-        <div class="ms-md-auto py-2 py-md-0">
-            <a href="{{ route('tenant.santri.trash') }}" class="btn btn-label-info btn-round btn-sm me-2">
-                <i class="fas fa-trash-alt me-2"></i> Kotak Sampah
-            </a>
-            <a href="{{ route('tenant.santri.create') }}" class="btn btn-info btn-round btn-sm shadow-sm text-white">
-                <i class="fas fa-plus-circle me-2"></i> Tambah Santri
-            </a>
+        <div>
+            <h3 class="text-dark fw-bold mb-0" style="font-size: 1.6rem;">Database Santri</h3>
+            <p class="text-muted mb-0 small">Manajemen profil santri, data akademik, riwayat wali murid, dan status keaktifan.</p>
+        </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <a href="{{ route('tenant.santri.import') }}" class="btn btn-outline-primary btn-round shadow-sm btn-sm">
+            <i class="fas fa-file-import me-1.5"></i> Import Excel
+        </a>
+        <a href="{{ route('tenant.santri.trash') }}" class="btn btn-light btn-round border shadow-sm btn-sm">
+            <i class="fas fa-trash-alt text-danger me-1.5"></i> Kotak Sampah
+        </a>
+        <a href="{{ route('tenant.santri.create') }}" class="btn btn-primary btn-round shadow-sm btn-sm">
+            <i class="fas fa-plus-circle me-1.5"></i> Tambah Santri
+        </a>
+    </div>
+</div>
+
+{{-- ALERT MESSAGES --}}
+@if(session('success'))
+    <div id="success-trigger" data-message="{{ session('success') }}"></div>
+@endif
+
+{{-- SUMMARY STATS --}}
+<div class="row g-3 mb-4">
+    {{-- Total Santri --}}
+    <div class="col-6 col-lg-3">
+        <div class="card card-stat-custom h-100 mb-0">
+            <div class="card-body p-3.5 d-flex align-items-center">
+                <div class="icon-avatar bg-primary-soft text-primary me-3">
+                    <i class="fas fa-users fa-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xs fw-semibold text-muted d-block">TOTAL SANTRI</span>
+                    <h4 class="fw-bold mb-0 text-dark mt-0.5">{{ $totalSantri }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {{-- Santri Keaktifan --}}
+    <div class="col-6 col-lg-3">
+        <div class="card card-stat-custom h-100 mb-0">
+            <div class="card-body p-3.5 d-flex align-items-center">
+                <div class="icon-avatar bg-success-soft text-success me-3">
+                    <i class="fas fa-toggle-on fa-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xs fw-semibold text-muted d-block">SANTRI AKTIF</span>
+                    <h4 class="fw-bold mb-0 text-success mt-0.5">{{ $aktifCount }}</h4>
+                </div>
+            </div>
         </div>
     </div>
 
-    @if(session('success'))
-        <div id="success-trigger" data-message="{{ session('success') }}"></div>
-    @endif
+    {{-- Santri Putra --}}
+    <div class="col-6 col-lg-3">
+        <div class="card card-stat-custom h-100 mb-0">
+            <div class="card-body p-3.5 d-flex align-items-center">
+                <div class="icon-avatar bg-info-soft text-info me-3">
+                    <i class="fas fa-mars fa-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xs fw-semibold text-muted d-block">PUTRA (LAKI-LAKI)</span>
+                    <h4 class="fw-bold mb-0 text-info mt-0.5">{{ $putraCount }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card card-round border-0 shadow-none mt-n1">
-                <div class="card-body p-3">
-                    <div class="table-responsive">
-                        <table id="santriTable" class="display table table-head-bg-info table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th style="width: 10%">NIS</th>
-                                    <th style="width: 25%">Nama Santri</th>
-                                    <th class="text-center">JK</th>
-                                    <th>Wali Murid</th>
-                                    <th class="text-center">Status</th>
-                                    <th>Tgl Masuk</th>
-                                    <th class="text-end pe-3">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($santris as $santri)
-                                    <tr>
-                                        <td class="fw-bold text-info">#{{ $santri->nis }}</td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="avatar avatar-sm me-3">
-                                                    <span class="avatar-title rounded-circle border border-white bg-info">
-                                                        {{ strtoupper(substr($santri->nama_lengkap, 0, 1)) }}
-                                                    </span>
-                                                </div>
-                                                <div class="flex-1">
-                                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 13px;">{{ $santri->nama_lengkap }}</h6>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge {{ $santri->jenis_kelamin == 'L' ? 'bg-secondary' : 'bg-warning' }} btn-round" style="font-size: 10px;">
-                                                {{ $santri->jenis_kelamin }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="fw-bold text-dark" style="font-size: 13px;">{{ $santri->wali?->nama ?? '-' }}</div>
-                                            <small class="text-muted">{{ $santri->wali?->no_hp ?? '' }}</small>
-                                        </td>
-                                        <td class="text-center">
-                                            @php
-                                                $statusClass = [
-                                                    'Aktif' => 'badge-success',
-                                                    'Lulus' => 'badge-primary',
-                                                    'Keluar' => 'badge-danger',
-                                                    'Pindah' => 'badge-warning'
-                                                ][$santri->status] ?? 'badge-secondary';
-                                            @endphp
-                                            <span class="badge {{ $statusClass }}">{{ $santri->status }}</span>
-                                        </td>
-                                        <td>
-                                            <span class="text-muted small fw-bold">
-                                                <i class="far fa-calendar-alt me-1"></i> {{ \Carbon\Carbon::parse($santri->tanggal_masuk)->format('d/m/Y') }}
-                                            </span>
-                                        </td>
-                                        <td class="text-end pe-0">
-                                            <div class="form-button-action">
-                                                <a href="{{ route('tenant.santri.edit', $santri) }}" 
-                                                   class="btn btn-link btn-primary btn-lg p-2" 
-                                                   data-bs-toggle="tooltip" 
-                                                   title="Edit Profil">
-                                                    <i class="fa fa-edit"></i>
-                                                </a>
-                                        
-                                                <form action="{{ route('tenant.santri.destroy', $santri) }}" method="POST" class="d-inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="button" 
-                                                            class="btn btn-link btn-danger btn-lg p-2 btn-delete" 
-                                                            data-bs-toggle="tooltip" 
-                                                            title="Hapus Santri">
-                                                        <i class="fa fa-times"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+    {{-- Santri Putri --}}
+    <div class="col-6 col-lg-3">
+        <div class="card card-stat-custom h-100 mb-0">
+            <div class="card-body p-3.5 d-flex align-items-center">
+                <div class="icon-avatar bg-danger-soft text-danger me-3">
+                    <i class="fas fa-venus fa-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xs fw-semibold text-muted d-block">PUTRI (PEREMPUAN)</span>
+                    <h4 class="fw-bold mb-0 text-danger mt-0.5">{{ $putriCount }}</h4>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+{{-- TABLE CARD --}}
+<div class="card card-round border-0 shadow-none mt-n2">
+    <div class="card-body p-3">
+        <div class="table-responsive">
+            <table id="santriTable" class="display table table-hover align-middle mb-0" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th class="text-nowrap" style="width: 10%;">NIS</th>
+                        <th class="text-nowrap" style="width: 25%;">Nama Santri</th>
+                        <th class="text-center text-nowrap" style="width: 10%;">Grup (JK)</th>
+                        <th class="text-nowrap" style="width: 15%;">Kelas</th>
+                        <th class="text-nowrap" style="width: 20%;">Kamar & Komplek</th>
+                        <th class="text-nowrap" style="width: 20%;">Wali Murid</th>
+                        <th class="text-center text-nowrap" style="width: 8%;">Status</th>
+                        <th class="text-end text-nowrap pe-3" style="width: 12%;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($santris as $santri)
+                        <tr>
+                            <td class="fw-bold text-primary text-nowrap">#{{ $santri->nis }}</td>
+                            <td class="text-nowrap">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-3">
+                                        <span class="avatar-title rounded-circle border border-white {{ $santri->jenis_kelamin == 'L' ? 'bg-primary-soft text-primary' : 'bg-danger-soft text-danger' }} fw-bold" style="font-size: 13.5px;">
+                                            {{ strtoupper(substr($santri->nama_lengkap, 0, 1)) }}
+                                        </span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h6 class="fw-bold mb-0 text-dark text-nowrap" style="font-size: 13.5px;">{{ $santri->nama_lengkap }}</h6>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center text-nowrap">
+                                @if($santri->jenis_kelamin == 'L')
+                                    <span class="text-info fw-semibold text-xs">
+                                        <i class="fas fa-mars me-1"></i> Putra
+                                    </span>
+                                @else
+                                    <span class="text-danger fw-semibold text-xs">
+                                        <i class="fas fa-venus me-1"></i> Putri
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="text-nowrap">
+                                @if($santri->kelas)
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-school text-muted me-2" style="font-size: 13px;"></i>
+                                        <span class="fw-medium text-dark" style="font-size: 13px;">{{ $santri->kelas->nama }}</span>
+                                    </div>
+                                @else
+                                    <span class="text-muted small">-</span>
+                                @endif
+                            </td>
+                            <td class="text-nowrap">
+                                @if($santri->kamar)
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-bed text-muted me-2" style="font-size: 13px;"></i>
+                                        <span class="fw-medium text-dark" style="font-size: 13px;">
+                                            {{ $santri->kamar->nama }}
+                                            @if($santri->kamar->kompleks)
+                                                <span class="text-muted small fw-normal">({{ $santri->kamar->kompleks->nama }})</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                @else
+                                    <span class="text-muted small">-</span>
+                                @endif
+                            </td>
+                            <td class="text-nowrap">
+                                @if($santri->wali)
+                                    <div class="fw-bold text-dark" style="font-size: 13px;">{{ $santri->wali->nama }}</div>
+                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $santri->wali->no_hp) }}" target="_blank" class="text-success fw-semibold small d-block mt-0.5">
+                                        <i class="fab fa-whatsapp text-success me-1"></i>{{ $santri->wali->no_hp }}
+                                    </a>
+                                @else
+                                    <span class="text-muted small">-</span>
+                                @endif
+                            </td>
+                            <td class="text-center text-nowrap">
+                                @php
+                                    $state = $statusMap[$santri->status] ?? ['label' => ucfirst($santri->status), 'class' => 'bg-secondary-soft text-secondary'];
+                                @endphp
+                                <span class="badge {{ $state['class'] }} rounded-pill px-3 py-1.5 fw-bold text-xs border" style="font-size: 10.5px;">
+                                    {{ $state['label'] }}
+                                </span>
+                            </td>
+                            <td class="text-end text-nowrap pe-0">
+                                <div class="form-button-action">
+                                    <a href="{{ route('tenant.santri.show', $santri) }}" 
+                                       class="btn btn-link btn-info p-2" 
+                                       data-bs-toggle="tooltip" 
+                                       title="Lihat Detail">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    <a href="{{ route('tenant.santri.edit', $santri) }}" 
+                                       class="btn btn-link btn-primary p-2" 
+                                       data-bs-toggle="tooltip" 
+                                       title="Edit Profil">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('tenant.santri.destroy', $santri) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" 
+                                                class="btn btn-link btn-danger p-2 btn-delete" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Hapus ke Sampah">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <style>
-    /* Merapikan form-button-action supaya icon tidak bertumpuk */
-    .form-button-action {
-        display: flex !important;
-        justify-content: flex-end;
-        gap: 2px;
-    }
-
-    /* Memastikan icon pensil/edit tidak tenggelam */
-    .btn-link.btn-primary {
-        color: #1572e8 !important; /* Warna biru icon edit */
-    }
-
-    .btn-link.btn-primary:hover {
-        color: #1266d4 !important;
-        background: transparent !important;
-    }
-
-    /* Ukuran icon supaya pas */
-    .form-button-action i {
-        font-size: 16px !important;
-    }
-    /* Tema Warna Info/Teal */
-    .btn-info, .bg-info, .table-head-bg-info thead th {
-        background: #48abf7 !important; /* Biru muda / Teal */
-        border-color: #48abf7 !important;
+    /* Icon Avatar Styles */
+    .icon-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
-    .text-info { color: #48abf7 !important; }
-
-    .mt-n1 { margin-top: -10px !important; }
-    
-    .table-head-bg-info thead th {
-        color: #fff !important;
-        padding: 12px 15px !important;
-        font-size: 10px !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    .bg-primary-gradient {
+        background: linear-gradient(135deg, #1572e8 0%, #064095 100%) !important;
     }
-
-    .card-round { border-radius: 12px !important; }
     
-    .btn-label-info {
-        background: #e1f2ff;
-        color: #48abf7;
+    .card-stat-custom {
         border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #ffffff;
     }
     
-    .btn-label-info:hover {
-        background: #48abf7;
-        color: white;
+    .card-stat-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
     }
 
-    /* Custom Badges */
-    .badge { padding: 5px 12px; font-weight: 700; border-radius: 50px; font-size: 10px; }
+    /* Soft colors */
+    .bg-success-soft {
+        background-color: #ecfdf5 !important;
+        color: #059669 !important;
+        border-color: #a7f3d0 !important;
+    }
+
+    .bg-danger-soft {
+        background-color: #fef2f2 !important;
+        color: #dc2626 !important;
+        border-color: #fecaca !important;
+    }
+    
+    .bg-primary-soft {
+        background-color: #eff6ff !important;
+        color: #2563eb !important;
+        border-color: #bfdbfe !important;
+    }
+    
+    .bg-warning-soft {
+        background-color: #fffbeb !important;
+        color: #d97706 !important;
+        border-color: #fde68a !important;
+    }
+
+    .bg-info-soft {
+        background-color: #eff6ff !important;
+        color: #0284c7 !important;
+        border-color: #bae6fd !important;
+    }
+
+    .bg-secondary-soft {
+        background-color: #f8fafc !important;
+        color: #64748b !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    .text-slate { color: #64748b; }
+    .text-xs { font-size: 0.75rem; }
+    .text-sm { font-size: 0.875rem; }
+    .btn-round { border-radius: 50px; }
+    .avatar-sm { width: 34px; height: 34px; }
+    .avatar-title { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+    
+    .mt-n2 { margin-top: -15px !important; }
+    
+    /* DataTable customization overrides */
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 20px !important;
+        padding: 6px 16px !important;
+        font-size: 13px !important;
+    }
+    
+    .dataTables_wrapper .dataTables_length select {
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        padding: 4px 8px !important;
+    }
 </style>
 @endsection
 
 @push('scripts')
 <script>
     $(document).ready(function() {
-        // 1. Initialize DataTables
         var table = $('#santriTable').DataTable({
-            "pageLength": 10,
+            "pageLength": 25,
             "language": {
                 "search": "",
-                "searchPlaceholder": "Cari NIS atau Nama...",
-                "lengthMenu": "_MENU_",
+                "searchPlaceholder": "Cari NIS, Nama, Kelas...",
+                "lengthMenu": "Tampilkan _MENU_",
                 "info": "Menampilkan _START_ - _END_ dari _TOTAL_ santri",
                 "paginate": {
                     "next": '<i class="fa fa-chevron-right"></i>',
@@ -188,41 +347,36 @@
             "dom": '<"d-flex flex-wrap justify-content-between align-items-center mb-3"lf>rt<"d-flex flex-wrap justify-content-between align-items-center mt-3"ip>'
         });
 
-        // 2. PERBAIKAN TOMBOL AKSI (Event Delegation)
-        // Kita tembak ke body atau #santriTable supaya tombol tetap jalan walau pindah page
         $('body').on('click', '.btn-delete', function(e) {
-            e.preventDefault(); // Stop form biar gak langsung kehapus
-            
+            e.preventDefault();
             var form = $(this).closest("form");
             
             swal({
                 title: "Hapus Santri?",
-                text: "Data akan dipindahkan ke kotak sampah.",
+                text: "Data santri ini akan dipindahkan ke kotak sampah sementara.",
                 icon: "warning",
                 buttons: {
                     cancel: { 
                         visible: true, 
                         text: "Batal", 
-                        className: 'btn btn-focus' 
+                        className: 'btn btn-focus btn-round' 
                     },
                     confirm: { 
-                        text: "Ya, Hapus", 
-                        className: 'btn btn-danger' 
+                        text: "Ya, Pindahkan", 
+                        className: 'btn btn-danger btn-round' 
                     }
                 }
             }).then((willDelete) => {
                 if (willDelete) {
-                    form.submit(); // Eksekusi hapus jika klik OK
+                    form.submit();
                 }
             });
         });
 
-        // 3. Inisialisasi Tooltip ulang setiap kali tabel di-draw
         table.on('draw', function() {
             $('[data-bs-toggle="tooltip"]').tooltip();
         });
 
-        // 4. Notify Kanan Bawah
         let msg = $('#success-trigger').data('message');
         if(msg) {
             $.notify({

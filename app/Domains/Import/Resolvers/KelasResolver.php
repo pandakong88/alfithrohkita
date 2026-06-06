@@ -6,52 +6,56 @@ use App\Models\Kelas;
 
 class KelasResolver
 {
+    protected array $resolvedCache = [];
+    protected ?string $currentCacheKey = null;
+
     /**
      * Resolve Kelas
-     * Cari berdasarkan pondok + nama kelas. Jika tidak ada, buat baru.
+     * Menggunakan pola firstOrNew (bukan create)
      */
     public function resolve(int $pondokId, ?array $payload): ?Kelas
     {
-        // Null-safety check agar tidak error jika payload kosong
         if (empty($payload) || empty($payload['kelas'])) {
             return null;
         }
 
         $namaKelas = trim($payload['kelas']);
+        $this->currentCacheKey = "kelas_{$pondokId}_" . strtolower($namaKelas);
 
+        if (isset($this->resolvedCache[$this->currentCacheKey])) {
+            return $this->resolvedCache[$this->currentCacheKey];
+        }
+
+        // Menggunakan firstOrNew agar hemat query dan tidak langsung insert
         $kelas = Kelas::where('pondok_id', $pondokId)
             ->where('nama', $namaKelas)
-            ->first();
-
-        if (!$kelas) {
-            $kelas = Kelas::create([
+            ->first() ?? new Kelas([
                 'pondok_id' => $pondokId,
                 'nama'      => $namaKelas
             ]);
-        }
 
         return $kelas;
     }
 
     /**
      * Update Kelas
-     * Digunakan saat tahap commit untuk sinkronisasi data payload ke model.
+     * Memanfaatkan isDirty() untuk meminimalisir query ke database
      */
-    public function update(Kelas $model, array $payload): bool
+    public function update(Kelas $model, array $payload): Kelas
     {
-        if (empty($payload['kelas'])) {
-            return false;
+        if (array_key_exists('kelas', $payload)) {
+            $model->nama = trim($payload['kelas']);
         }
 
-        $namaBaru = trim($payload['kelas']);
-
-        // Hanya update jika ada perubahan nama
-        if ($model->nama !== $namaBaru) {
-            return $model->update([
-                'nama' => $namaBaru
-            ]);
+        // Hanya save ke database jika ada perubahan (isDirty) atau model baru (exists == false)
+        if ($model->isDirty() || !$model->exists) {
+            $model->save();
         }
 
-        return true;
+        if ($this->currentCacheKey) {
+            $this->resolvedCache[$this->currentCacheKey] = $model;
+        }
+
+        return $model;
     }
 }

@@ -23,6 +23,7 @@ class Santri extends Model
         'pondok_id',
         'wali_id',
         'kamar_id',
+        'kelas_id',
         'nis',
         'nama_lengkap',
         'jenis_kelamin',
@@ -33,6 +34,7 @@ class Santri extends Model
         'status',
         'tanggal_masuk',
         'tanggal_keluar',
+        'custom_fields',
         'created_by',
         'updated_by',
     ];
@@ -41,6 +43,7 @@ class Santri extends Model
         'tanggal_lahir' => 'date',
         'tanggal_masuk' => 'date',
         'tanggal_keluar' => 'date',
+        'custom_fields' => 'json',  
     ];
 
     /*

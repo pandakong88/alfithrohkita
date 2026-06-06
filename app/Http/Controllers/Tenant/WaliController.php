@@ -13,6 +13,7 @@ use App\Domains\Wali\Actions\CreateWaliAction;
 use App\Domains\Wali\Actions\UpdateWaliAction;
 use App\Domains\Wali\Actions\DeleteWaliAction;
 use App\Domains\Wali\Actions\RestoreWaliAction;
+use App\Models\WaliImportBatch;
 
 class WaliController extends Controller
 {
@@ -47,6 +48,23 @@ class WaliController extends Controller
         return redirect()
             ->route('tenant.wali.index')
             ->with('success', 'Wali berhasil dibuat.');
+    }
+
+    public function show(Wali $wali)
+    {
+        abort_if(
+            $wali->pondok_id !== auth()->user()->pondok_id,
+            403
+        );
+
+        $wali->load([
+            'santris.kelas',
+            'santris.kamar.kompleks',
+            'creator',
+            'updater'
+        ]);
+
+        return view('tenant.wali.show', compact('wali'));
     }
 
     public function edit(Wali $wali)
@@ -126,5 +144,109 @@ class WaliController extends Controller
                 'text' => $wali->nama . ' (' . $wali->no_hp . ')' // Untuk kemudahan di Select2
             ]
         ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | IMPORT FORM
+    |--------------------------------------------------------------------------
+    |*/
+    public function importForm()
+    {
+        return view('tenant.wali.import');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DOWNLOAD TEMPLATE
+    |--------------------------------------------------------------------------
+    |*/
+    public function downloadTemplate()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\WaliTemplateExport,
+            'template-import-wali.xlsx'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PREVIEW IMPORT
+    |--------------------------------------------------------------------------
+    |*/
+    public function previewImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv'
+        ]);
+
+        $batch = app(\App\Domains\Wali\Actions\ImportWaliPreviewAction::class)
+            ->execute($request->file('file'));
+
+        return redirect()->route(
+            'tenant.wali.import.preview.show',
+            $batch->id
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SHOW PREVIEW
+    |--------------------------------------------------------------------------
+    |*/
+    public function showPreview(WaliImportBatch $batch)
+    {
+        abort_if(
+            $batch->pondok_id !== auth()->user()->pondok_id,
+            403
+        );
+
+        $rows = $batch->rows()
+            ->orderBy('row_number')
+            ->paginate(50);
+
+        return view('tenant.wali.import-preview', [
+            'batch' => $batch,
+            'rows' => $rows
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | COMMIT IMPORT
+    |--------------------------------------------------------------------------
+    |*/
+    public function importCommit(WaliImportBatch $batch)
+    {
+        abort_if(
+            $batch->pondok_id !== auth()->user()->pondok_id,
+            403
+        );
+
+        if ($batch->status !== 'preview') {
+            return back()->with('error', 'Batch sudah diproses.');
+        }
+
+        app(\App\Domains\Wali\Actions\CommitWaliImportAction::class)
+            ->execute($batch);
+
+        return redirect()
+            ->route('tenant.wali.index')
+            ->with('success', 'Batch berhasil disimpan ke database.');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | IMPORT HISTORY
+    |--------------------------------------------------------------------------
+    |*/
+    public function importHistory()
+    {
+        $batches = WaliImportBatch::with(['uploader', 'committer'])
+            ->where('pondok_id', auth()->user()->pondok_id)
+            ->latest()
+            ->get();
+
+        return view('tenant.wali.import-history', compact('batches'));
     }
 }

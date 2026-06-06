@@ -18,39 +18,29 @@
         <div class="sidebar-content">
             <ul class="nav nav-secondary">
                 
-                {{-- Dashboard: Bisa diakses semua user yang bisa masuk tenant --}}
+                {{-- Utama --}}
                 <li class="nav-item {{ request()->routeIs('tenant.dashboard') ? 'active' : '' }}">
                     <a href="{{ route('tenant.dashboard') }}">
                         <i class="fas fa-home"></i>
-                        <p>Dashboard</p>
+                        <p>Dashboard Utama</p>
                     </a>
                 </li>
 
-                {{-- Menampilkan Judul Section Hanya Jika User Punya Akses ke Salah Satu Menu di Dalamnya --}}
-                @if(auth()->user()->can('manage_santri') || auth()->user()->can('manage_wali') || auth()->user()->can('manage_perizinan') || auth()->user()->can('manage_absensi') || auth()->user()->can('manage_pelanggaran'))
+                {{-- Section Kesiswaan --}}
+                @if(auth()->user()->can('manage_santri') || auth()->user()->can('manage_wali'))
                 <li class="nav-section">
-                    <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
-                    <h4 class="text-section">Manajemen Data</h4>
+                    <span class="sidebar-mini-icon"><i class="fa fa-users"></i></span>
+                    <h4 class="text-section">Data Santri & Wali</h4>
                 </li>
                 @endif
 
-                {{-- Data Santri --}}
+                {{-- Data Santri (Direct Link - No collapse needed since it has one child) --}}
                 @can('manage_santri')
-                <li class="nav-item {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'active submenu' : '' }}">
-                    <a data-bs-toggle="collapse" href="#menuSantri">
+                <li class="nav-item {{ request()->routeIs('tenant.santri.*') && !request()->routeIs('tenant.santri.handbook.*') ? 'active' : '' }}">
+                    <a href="{{ route('tenant.santri.index') }}">
                         <i class="fas fa-user-graduate"></i>
                         <p>Data Santri</p>
-                        <span class="caret"></span>
                     </a>
-                    <div class="collapse {{ request()->routeIs('tenant.santri.*') || request()->routeIs('tenant.santri.snapshot.*') ? 'show' : '' }}" id="menuSantri">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('tenant.santri.index') ? 'active' : '' }}">
-                                <a href="{{ route('tenant.santri.index') }}">
-                                    <span class="sub-item">Daftar Santri</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
                 </li>
                 @endcan
 
@@ -59,39 +49,47 @@
                 <li class="nav-item {{ request()->routeIs('tenant.wali.*') ? 'active' : '' }}">
                     <a href="{{ route('tenant.wali.index') }}">
                         <i class="fas fa-user-friends"></i>
-                        <p>Data Wali</p>
+                        <p>Data Wali Murid</p>
                     </a>
                 </li>
                 @endcan
 
-                {{-- Pedoman Santri (Mengikuti permission manage_santri atau buat publik jika diperlukan) --}}
+                {{-- Pedoman Santri --}}
                 @can('manage_cms')
                 <li class="nav-item {{ request()->routeIs('tenant.santri.handbook.*') ? 'active' : '' }}">
                     <a href="{{ route('tenant.santri.handbook.index') }}">
                         <i class="fas fa-book-open"></i>
-                        <p>Pedoman Santri</p>
+                        <p>Buku Pedoman Santri</p>
                     </a>
                 </li>
                 @endcan
 
-                {{-- Manajemen Perizinan --}}
+                {{-- Section Aktivitas Harian --}}
+                @if(auth()->user()->can('manage_perizinan') || auth()->user()->can('manage_absensi') || auth()->user()->can('manage_pelanggaran'))
+                <li class="nav-section">
+                    <span class="sidebar-mini-icon"><i class="fa fa-calendar-alt"></i></span>
+                    <h4 class="text-section">Aktivitas & Kedisiplinan</h4>
+                </li>
+                @endif
+
+                {{-- Perizinan Keluar Masuk --}}
                 @can('manage_perizinan')
                 <li class="nav-item {{ request()->routeIs('tenant.template-perizinan.*') || request()->routeIs('tenant.perizinan.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuPerizinan">
                         <i class="fas fa-file-contract"></i>
-                        <p>Manajemen Perizinan</p>
+                        <p>Izin Keluar-Masuk</p>
                         <span class="caret"></span>
                     </a>
                     <div class="collapse {{ request()->routeIs('tenant.template-perizinan.*') || request()->routeIs('tenant.perizinan.*') ? 'show' : '' }}" id="menuPerizinan">
                         <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('tenant.template-perizinan.*') ? 'active' : '' }}">
-                                <a href="{{ route('tenant.template-perizinan.index') }}">
-                                    <span class="sub-item">Template Perizinan</span>
-                                </a>
-                            </li>
                             <li class="{{ request()->routeIs('tenant.perizinan.*') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.perizinan.index') }}">
-                                    <span class="sub-item">Data Keluar Masuk</span>
+                                    <span class="sub-item">Catatan Izin</span>
+                                </a>
+                            </li>
+                            <li class="{{ request()->routeIs('tenant.template-perizinan.*') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.template-perizinan.index') }}">
+                                    <span class="sub-item">Template Surat Izin</span>
                                 </a>
                             </li>
                         </ul>
@@ -99,24 +97,24 @@
                 </li>
                 @endcan
 
-                {{-- Presensi Santri --}}
+                {{-- Presensi / Kehadiran --}}
                 @can('manage_absensi')
                 <li class="nav-item {{ request()->routeIs('tenant.absensi.*') || request()->routeIs('tenant.absensi-sesi.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuAbsensi">
                         <i class="fas fa-calendar-check"></i>
-                        <p>Presensi Santri</p>
+                        <p>Kehadiran (Absensi)</p>
                         <span class="caret"></span>
                     </a>
                     <div class="collapse {{ request()->routeIs('tenant.absensi.*') || request()->routeIs('tenant.absensi-sesi.*') ? 'show' : '' }}" id="menuAbsensi">
                         <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('tenant.absensi-sesi.*') ? 'active' : '' }}">
-                                <a href="{{ route('tenant.absensi-sesi.index') }}">
-                                    <span class="sub-item">Konfigurasi Sesi</span>
+                            <li class="{{ request()->routeIs('tenant.absensi.pilih-sesi') || request()->routeIs('tenant.absensi.index') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.absensi.pilih-sesi') }}">
+                                    <span class="sub-item">Pencatatan Hadir</span>
                                 </a>
                             </li>
-                            <li class="{{ request()->routeIs('tenant.absensi.pilih-sesi') ? 'active' : '' }}">
-                                <a href="{{ route('tenant.absensi.pilih-sesi') }}">
-                                    <span class="sub-item">Dashboard Absensi</span>
+                            <li class="{{ request()->routeIs('tenant.absensi-sesi.*') ? 'active' : '' }}">
+                                <a href="{{ route('tenant.absensi-sesi.index') }}">
+                                    <span class="sub-item">Sesi Absensi</span>
                                 </a>
                             </li>
                         </ul>
@@ -129,19 +127,19 @@
                 <li class="nav-item {{ request()->routeIs('tenant.pelanggaran.*') || request()->routeIs('tenant.kategori-pelanggaran.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuPelanggaran">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <p>Pencatatan Pelanggaran</p>
+                        <p>Catatan Pelanggaran</p>
                         <span class="caret"></span>
                     </a>
                     <div class="collapse {{ request()->routeIs('tenant.pelanggaran.*') || request()->routeIs('tenant.kategori-pelanggaran.*') ? 'show' : '' }}" id="menuPelanggaran">
                         <ul class="nav nav-collapse">
                             <li class="{{ request()->routeIs('tenant.pelanggaran.index') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.pelanggaran.index') }}">
-                                    <span class="sub-item">Data Pelanggaran</span>
+                                    <span class="sub-item">Laporan Pelanggaran</span>
                                 </a>
                             </li>
                             <li class="{{ request()->routeIs('tenant.kategori-pelanggaran.index') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.kategori-pelanggaran.index') }}">
-                                    <span class="sub-item">Kategori Pelanggaran</span>
+                                    <span class="sub-item">Kategori Hukuman</span>
                                 </a>
                             </li>
                         </ul>
@@ -149,17 +147,20 @@
                 </li>
                 @endcan
 
-                {{-- Fitur Import: Dikunci menggunakan permission manage_santri sesuai struktur route group Anda --}}
-                @can('manage_santri')
+                {{-- Section Utilitas --}}
+                @if(auth()->user()->can('manage_santri') || auth()->user()->can('manage_users'))
                 <li class="nav-section">
-                    <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
-                    <h4 class="text-section">Fitur Import</h4>
+                    <span class="sidebar-mini-icon"><i class="fa fa-cog"></i></span>
+                    <h4 class="text-section">Sistem & Pengaturan</h4>
                 </li>
+                @endif
 
+                {{-- Fitur Import --}}
+                @can('manage_santri')
                 <li class="nav-item {{ request()->routeIs('tenant.import.*') || request()->routeIs('tenant.import-templates.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#menuImport">
                         <i class="fas fa-file-import"></i>
-                        <p>Sistem Import</p>
+                        <p>Import Excel</p>
                         <span class="caret"></span>
                     </a>
                     <div class="collapse {{ request()->routeIs('tenant.import.*') || request()->routeIs('tenant.import-templates.*') ? 'show' : '' }}" id="menuImport">
@@ -171,12 +172,12 @@
                             </li>
                             <li class="{{ request()->routeIs('tenant.import.history') || request()->routeIs('tenant.import.detail') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.import.history') }}">
-                                    <span class="sub-item">Riwayat & Log</span>
+                                    <span class="sub-item">Riwayat Import</span>
                                 </a>
                             </li>
                             <li class="{{ request()->routeIs('tenant.import-templates.index') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.import-templates.index') }}">
-                                    <span class="sub-item">Konfigurasi Template</span>
+                                    <span class="sub-item">Setting Kolom Template</span>
                                 </a>
                             </li>
                         </ul>
@@ -184,30 +185,24 @@
                 </li>
                 @endcan
 
-                {{-- Pengaturan Sistem --}}
-                @can('manage_users')
-                <li class="nav-section">
-                    <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
-                    <h4 class="text-section">Pengaturan Sistem</h4>
-                </li>
-
                 {{-- Manajemen Akses --}}
+                @can('manage_users')
                 <li class="nav-item {{ request()->routeIs('tenant.user.*') || request()->routeIs('tenant.role.*') ? 'active submenu' : '' }}">
                     <a data-bs-toggle="collapse" href="#pengaturanAkses">
                         <i class="fas fa-user-lock"></i>
-                        <p>Manajemen Akses</p>
+                        <p>Manajemen Pengguna</p>
                         <span class="caret"></span>
                     </a>
                     <div class="collapse {{ request()->routeIs('tenant.user.*') || request()->routeIs('tenant.role.*') ? 'show' : '' }}" id="pengaturanAkses">
                         <ul class="nav nav-collapse">
                             <li class="{{ request()->routeIs('tenant.user.*') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.user.index') }}">
-                                    <span class="sub-item">Pengguna (User)</span>
+                                    <span class="sub-item">User & Staf</span>
                                 </a>
                             </li>
                             <li class="{{ request()->routeIs('tenant.role.*') ? 'active' : '' }}">
                                 <a href="{{ route('tenant.role.index') }}">
-                                    <span class="sub-item">Peran (Role)</span>
+                                    <span class="sub-item">Hak Akses (Role)</span>
                                 </a>
                             </li>
                         </ul>
@@ -215,7 +210,7 @@
                 </li>
                 @endcan
 
-                {{-- Profil Pondok: Bisa dikonfigurasi mengikuti permission admin utama jika perlu --}}
+                {{-- Profil Pondok --}}
                 <li class="nav-item">
                     <a href="#">
                         <i class="fas fa-mosque"></i>

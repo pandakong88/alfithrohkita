@@ -183,6 +183,33 @@ Route::middleware('auth')->group(function () {
             */
             Route::middleware('permission:manage_wali')->group(function () {
 
+                // ================= Import =================
+                Route::get('wali/import/template',
+                    [\App\Http\Controllers\Tenant\WaliController::class, 'downloadTemplate']
+                )->name('wali.template.download');
+                
+                Route::get('wali/import',
+                    [\App\Http\Controllers\Tenant\WaliController::class, 'importForm']
+                )->name('wali.import');
+
+                Route::post('wali/import/preview',
+                    [\App\Http\Controllers\Tenant\WaliController::class, 'previewImport']
+                )->name('wali.import.preview');
+
+                Route::get('wali/import/{batch}/preview',
+                    [\App\Http\Controllers\Tenant\WaliController::class, 'showPreview']
+                )->whereNumber('batch')
+                ->name('wali.import.preview.show');
+
+                Route::post('wali/import/{batch}/commit',
+                    [\App\Http\Controllers\Tenant\WaliController::class, 'importCommit']
+                )->whereNumber('batch')
+                ->name('wali.import.commit');
+
+                Route::get('wali/import/history',
+                    [\App\Http\Controllers\Tenant\WaliController::class, 'importHistory']
+                )->name('wali.import.history');
+
                 Route::resource('wali',
                     \App\Http\Controllers\Tenant\WaliController::class
                 );
@@ -433,6 +460,22 @@ Route::middleware('auth')->group(function () {
             | IMPORT TEMPLATE MANAGEMENT
             |--------------------------------------------------------------------------
             */
+            Route::post('custom-fields', [
+                App\Http\Controllers\Tenant\ImportTemplateController::class, 'storeCustomField'
+            ])->name('custom-fields.store');
+            
+            Route::delete('custom-fields/{id}', [
+                App\Http\Controllers\Tenant\ImportTemplateController::class, 'destroyCustomField'
+            ])->name('custom-fields.destroy');
+
+            Route::get('import-templates/{id}/edit', [
+                App\Http\Controllers\Tenant\ImportTemplateController::class, 'edit'
+            ])->name('import-templates.edit');
+
+            Route::put('import-templates/{id}', [
+                App\Http\Controllers\Tenant\ImportTemplateController::class, 'update'
+            ])->name('import-templates.update');
+
             Route::resource('import-templates',
                 \App\Http\Controllers\Tenant\ImportTemplateController::class
             )->names('import-templates');

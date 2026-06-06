@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ImportField extends Model
 {
     protected $fillable = [
+        'pondok_id',
         'field_key',
         'label',
         'entity',

@@ -6,6 +6,9 @@ use App\Models\Lemari;
 
 class LemariResolver
 {
+    protected array $resolvedCache = [];
+    protected ?string $currentCacheKey = null;
+
     /**
      * Resolve Lemari
      * Cari berdasarkan pondok + kamar + nama lemari.
@@ -13,11 +16,16 @@ class LemariResolver
     public function resolve(int $pondokId, ?int $kamarId, ?array $payload): ?Lemari
     {
         // Pengecekan null-safety untuk payload dan field lemari
-        if (empty($payload) || empty($payload['lemari'])) {
+        if (empty($payload) || empty($payload['lemari']) || !$kamarId) {
             return null;
         }
 
         $namaLemari = trim($payload['lemari']);
+        $this->currentCacheKey = "lemari_{$pondokId}_{$kamarId}_" . strtolower($namaLemari);
+
+        if (isset($this->resolvedCache[$this->currentCacheKey])) {
+            return $this->resolvedCache[$this->currentCacheKey];
+        }
 
         $lemari = Lemari::where('pondok_id', $pondokId)
             ->where('kamar_id', $kamarId)
@@ -25,7 +33,7 @@ class LemariResolver
             ->first();
 
         if (!$lemari) {
-            $lemari = Lemari::create([
+            $lemari = new Lemari([
                 'pondok_id'   => $pondokId,
                 'kamar_id'    => $kamarId,
                 'nama'        => $namaLemari,
@@ -42,18 +50,20 @@ class LemariResolver
      */
     public function update(Lemari $lemari, array $payload): Lemari
     {
-        $data = [];
-
         if (isset($payload['lemari_tipe'])) {
-            $data['tipe'] = $payload['lemari_tipe'];
+            $lemari->tipe = $payload['lemari_tipe'];
         }
 
         if (isset($payload['jumlah_slot'])) {
-            $data['jumlah_slot'] = $payload['jumlah_slot'];
+            $lemari->jumlah_slot = $payload['jumlah_slot'];
         }
 
-        if (!empty($data)) {
-            $lemari->update($data);
+        if ($lemari->isDirty() || !$lemari->exists) {
+            $lemari->save();
+        }
+
+        if ($this->currentCacheKey) {
+            $this->resolvedCache[$this->currentCacheKey] = $lemari;
         }
 
         return $lemari;

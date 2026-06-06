@@ -16,6 +16,8 @@ class UpdateSantriData
         public ?string $tanggal_masuk,
         public ?string $tanggal_keluar,
         public ?int $wali_id,
+        public ?int $kamar_id,
+        public ?int $kelas_id,
     ) {}
 
     public static function fromArray(array $data): self
@@ -32,6 +34,8 @@ class UpdateSantriData
             tanggal_masuk: $data['tanggal_masuk'] ?? null,
             tanggal_keluar: $data['tanggal_keluar'] ?? null,
             wali_id: $data['wali_id'] ?? null,
+            kamar_id: $data['kamar_id'] ?? null,
+            kelas_id: $data['kelas_id'] ?? null,
         );
     }
 }

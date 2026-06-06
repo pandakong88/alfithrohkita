@@ -2,6 +2,8 @@
 
 namespace App\Domains\Import;
 
+use Illuminate\Support\Str;
+
 class ResolverManager
 {
     protected $cache = [];
@@ -12,7 +14,9 @@ class ResolverManager
             return $this->cache[$entity];
         }
 
-        $class = "App\\Domains\\Import\\Resolvers\\" . ucfirst($entity) . "Resolver";
+        // Gunakan Str::studly agar 'lemari_slot' -> 'LemariSlot'
+        $className = Str::studly($entity) . "Resolver";
+        $class = "App\\Domains\\Import\\Resolvers\\" . $className;
 
         if (!class_exists($class)) {
             return null;

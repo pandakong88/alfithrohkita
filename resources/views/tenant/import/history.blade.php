@@ -3,53 +3,113 @@
 @section('title', 'Riwayat Import Data')
 
 @section('content')
-<div class="container-fluid" style="background: #f8faf9; min-height: 90vh;">
-    <div class="page-inner py-5">
+<div class="container-fluid" style="background: #f8fafc; min-height: 90vh;">
+    <div class="page-inner py-4" style="padding-top: 15px !important;">
         
         {{-- HEADER --}}
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row mb-4">
             <div>
-                <h2 class="fw-extrabold text-dark mb-1">
-                    <i class="fas fa-history text-success me-2"></i> Riwayat Khidmah Data
-                </h2>
-                <p class="text-muted fw-medium">Catatan seluruh aktivitas unggah berkas ke sistem manajemen.</p>
+                <h3 class="fw-bold text-dark mb-1">
+                    <i class="fas fa-history text-success me-2"></i> Riwayat Integrasi Data
+                </h3>
+                <p class="text-muted small mb-0">Catatan seluruh aktivitas unggah berkas dan status kompilasi data pondok Anda.</p>
             </div>
-            {{-- <div class="ms-md-auto py-2 py-md-0">
-                <a href="{{ route('tenant.import.survey') }}" class="btn btn-success btn-round shadow-sm">
-                    <i class="fas fa-plus me-2"></i> Import Baru
-                </a>
-            </div> --}}
+        </div>
+
+        {{-- SUMMARY STATS --}}
+        <div class="row mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card card-round border-0 shadow-sm mb-0 h-100">
+                    <div class="card-body p-3 d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center bg-primary-gradient text-white shadow-sm" style="width: 44px; height: 44px; min-width: 44px;">
+                            <i class="fas fa-history fa-lg"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-0 small" style="font-size: 11px;">Total Transaksi</h6>
+                            <h4 class="fw-bold text-dark mb-0">{{ count($batches) }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                @php
+                    $completedCount = $batches->filter(function($b) { return $b->status === 'committed'; })->count();
+                @endphp
+                <div class="card card-round border-0 shadow-sm mb-0 h-100">
+                    <div class="card-body p-3 d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center bg-success-gradient text-white shadow-sm" style="width: 44px; height: 44px; min-width: 44px;">
+                            <i class="fas fa-check-circle fa-lg"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-0 small" style="font-size: 11px;">Selesai (Commit)</h6>
+                            <h4 class="fw-bold text-dark mb-0">{{ $completedCount }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mt-3 mt-md-0">
+                @php
+                    $previewCount = $batches->filter(function($b) { return $b->status === 'preview'; })->count();
+                @endphp
+                <div class="card card-round border-0 shadow-sm mb-0 h-100">
+                    <div class="card-body p-3 d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center bg-warning-gradient text-white shadow-sm" style="width: 44px; height: 44px; min-width: 44px;">
+                            <i class="fas fa-eye fa-lg"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-0 small" style="font-size: 11px;">Menunggu Review</h6>
+                            <h4 class="fw-bold text-dark mb-0">{{ $previewCount }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mt-3 mt-md-0">
+                @php
+                    $failedCount = $batches->filter(function($b) { return in_array($b->status, ['failed', 'rolled_back']); })->count();
+                @endphp
+                <div class="card card-round border-0 shadow-sm mb-0 h-100">
+                    <div class="card-body p-3 d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center bg-danger-gradient text-white shadow-sm" style="width: 44px; height: 44px; min-width: 44px;">
+                            <i class="fas fa-exclamation-triangle fa-lg"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-0 small" style="font-size: 11px;">Gagal / Rollback</h6>
+                            <h4 class="fw-bold text-dark mb-0">{{ $failedCount }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row">
             <div class="col-md-12">
-                <div class="card card-round border-0 shadow-sm">
-                    <div class="card-body p-4">
+                <div class="card card-round border-0 shadow-sm overflow-hidden">
+                    <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table id="historyTable" class="table table-hover align-middle">
-                                <thead class="text-muted small text-uppercase" style="background: #fafafa;">
-                                    <tr>
-                                        <th class="ps-3">ID & Berkas</th>
+                            <table id="historyTable" class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr class="text-muted small text-uppercase">
+                                        <th class="ps-4">ID & Berkas</th>
                                         <th class="text-center">Statistik Baris</th>
                                         <th class="text-center">Status</th>
                                         <th>Pengunggah</th>
                                         <th>Waktu Transaksi</th>
-                                        <th class="text-end pe-3">Opsi</th>
+                                        <th class="text-end pe-4">Opsi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($batches as $batch)
                                     <tr>
-                                        <td class="ps-3">
+                                        <td class="ps-4">
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar avatar-sm me-3">
+                                                <div class="avatar avatar-sm me-3" style="width: 32px; height: 32px;">
                                                     <span class="avatar-title rounded-3 bg-soft-success text-success fw-bold" style="font-size: 10px;">
                                                         #{{ $batch->id }}
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <span class="text-dark fw-bold d-block mb-0">{{ Str::limit($batch->filename, 25) }}</span>
-                                                    <small class="text-muted" style="font-size: 11px;">Excel Spreadsheet</small>
+                                                    <span class="text-dark fw-bold d-block mb-0" style="font-size: 13px;">{{ Str::limit($batch->filename, 25) }}</span>
+                                                    <small class="text-muted" style="font-size: 10px;">Excel Spreadsheet</small>
                                                 </div>
                                             </div>
                                         </td>
@@ -68,16 +128,24 @@
                                             <small class="text-center d-block mt-1 text-muted" style="font-size: 10px;">Total: {{ $batch->total_rows }} Baris</small>
                                         </td>
                                         <td class="text-center">
-                                            @if($batch->status === 'completed')
-                                                <span class="badge badge-success px-3 py-2 rounded-pill shadow-sm">
+                                            @if($batch->status === 'committed')
+                                                <span class="badge badge-status-committed px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
                                                     <i class="fas fa-check-double me-1"></i> SELESAI
                                                 </span>
                                             @elseif($batch->status === 'preview')
-                                                <span class="badge badge-warning px-3 py-2 rounded-pill shadow-sm text-dark">
+                                                <span class="badge badge-status-preview px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
                                                     <i class="fas fa-eye me-1"></i> PREVIEW
                                                 </span>
+                                            @elseif($batch->status === 'failed')
+                                                <span class="badge badge-status-failed px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
+                                                    <i class="fas fa-times-circle me-1"></i> GAGAL
+                                                </span>
+                                            @elseif($batch->status === 'rolled_back')
+                                                <span class="badge badge-status-rolledback px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
+                                                    <i class="fas fa-undo me-1"></i> ROLLBACK
+                                                </span>
                                             @else
-                                                <span class="badge badge-secondary px-3 py-2 rounded-pill shadow-sm">
+                                                <span class="badge badge-status-rolledback px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
                                                     {{ strtoupper($batch->status) }}
                                                 </span>
                                             @endif
@@ -85,7 +153,7 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-user-circle text-muted me-2 fa-lg"></i>
-                                                <span class="fw-medium text-dark">{{ $batch->uploader->name ?? 'Sistem' }}</span>
+                                                <span class="fw-medium text-dark" style="font-size: 12px;">{{ $batch->uploader->name ?? 'Sistem' }}</span>
                                             </div>
                                         </td>
                                         <td>
@@ -94,11 +162,11 @@
                                                 {{ $batch->created_at->translatedFormat('d M Y, H:i') }}
                                             </span>
                                         </td>
-                                        <td class="text-end pe-3">
+                                        <td class="text-end pe-4">
                                             <a href="{{ route('tenant.import.detail', $batch->id) }}" 
-                                               class="btn btn-icon btn-link btn-success btn-lg" 
+                                               class="btn btn-icon btn-round btn-info btn-xs" 
                                                data-bs-toggle="tooltip" title="Lihat Rincian">
-                                                <i class="fas fa-external-link-alt"></i>
+                                                <i class="fas fa-external-link-alt" style="font-size: 10px;"></i>
                                             </a>
                                         </td>
                                     </tr>
@@ -116,26 +184,53 @@
 
 <style>
     .fw-extrabold { font-weight: 800; }
-    .bg-soft-success { background: rgba(40, 167, 69, 0.1); }
+    .bg-soft-success { background: rgba(40, 167, 69, 0.08); }
     .card-round { border-radius: 15px !important; }
-    
-    /* DataTable Styling */
-    #historyTable { border-collapse: separate; border-spacing: 0 8px; }
-    #historyTable tbody tr { 
-        background-color: white !important; 
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-        transition: transform 0.2s;
-    }
-    #historyTable tbody tr:hover { 
-        transform: scale(1.005);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-    #historyTable td { border: none !important; padding: 15px 10px; }
-    #historyTable td:first-child { border-radius: 12px 0 0 12px; }
-    #historyTable td:last-child { border-radius: 0 12px 12px 0; }
+    .gap-3 { gap: 1rem !important; }
 
-    .badge-success { background: #28a745 !important; }
-    .badge-warning { background: #ffc107 !important; }
+    .bg-primary-gradient {
+        background: linear-gradient(135deg, #1572e8 0%, #04befe 100%) !important;
+    }
+    .bg-warning-gradient {
+        background: linear-gradient(135deg, #ffa534 0%, #ffc107 100%) !important;
+    }
+    .bg-success-gradient {
+        background: linear-gradient(135deg, #2bb930 0%, #66bb6a 100%) !important;
+    }
+    .bg-danger-gradient {
+        background: linear-gradient(135deg, #f25961 0%, #f3545d 100%) !important;
+    }
+
+    #historyTable thead th {
+        background-color: #f8fafc !important;
+        color: #475569 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        font-size: 10px !important;
+        letter-spacing: 0.5px;
+        padding: 12px 16px !important;
+    }
+
+    #historyTable tbody tr {
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    #historyTable tbody tr:hover {
+        background-color: #f8fafc !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
+    }
+
+    #historyTable tbody td {
+        padding: 14px 16px !important;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9 !important;
+    }
+
+    .badge-status-committed { background-color: #e6f4ed; color: #1e7e34; border: 1px solid #c3e6cb; }
+    .badge-status-preview { background-color: #fffbeb; color: #b78103; border: 1px solid #ffeeba; }
+    .badge-status-failed { background-color: #fdf2f2; color: #dc3545; border: 1px solid #f5c6cb; }
+    .badge-status-rolledback { background-color: #f8f9fa; color: #6c757d; border: 1px solid #e2e3e5; }
 </style>
 @endsection
 

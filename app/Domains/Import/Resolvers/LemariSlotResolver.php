@@ -12,9 +12,9 @@ class LemariSlotResolver
     |--------------------------------------------------------------------------
     */
 
-    public function resolve(int $lemariId, array $payload): ?LemariSlot
+    public function resolve(int $pondokId, ?int $lemariId, ?array $payload): ?LemariSlot
     {
-        if (empty($payload['slot'])) {
+        if (!$lemariId || empty($payload['slot'])) {
             return null;
         }
 
@@ -23,8 +23,7 @@ class LemariSlotResolver
             ->first();
 
         if (!$slot) {
-
-            $slot = LemariSlot::create([
+            $slot = new LemariSlot([
                 'lemari_id' => $lemariId,
                 'nomor_slot' => $payload['slot'],
                 'status' => $payload['slot_status'] ?? 'kosong',
@@ -37,18 +36,16 @@ class LemariSlotResolver
 
     public function update(LemariSlot $slot, array $payload): LemariSlot
     {
-        $data = [];
-
         if (isset($payload['slot_status'])) {
-            $data['status'] = $payload['slot_status'];
+            $slot->status = $payload['slot_status'];
         }
 
         if (isset($payload['slot_keterangan'])) {
-            $data['keterangan'] = $payload['slot_keterangan'];
+            $slot->keterangan = $payload['slot_keterangan'];
         }
 
-        if (!empty($data)) {
-            $slot->update($data);
+        if ($slot->isDirty() || !$slot->exists) {
+            $slot->save();
         }
 
         return $slot;

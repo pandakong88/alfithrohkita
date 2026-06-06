@@ -30,12 +30,55 @@ class SantriController extends Controller
 
     public function index()
     {
-        $santris = Santri::with('wali')
+        $santris = Santri::with(['wali', 'kamar.kompleks', 'kelas'])
             ->where('pondok_id', auth()->user()->pondok_id)
             ->latest()
             ->get();
 
         return view('tenant.santri.index', compact('santris'));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DETAIL SANTRI (PROFILE)
+    |--------------------------------------------------------------------------
+    |
+    */
+
+    public function show(Santri $santri)
+    {
+        abort_if(
+            $santri->pondok_id !== auth()->user()->pondok_id,
+            403
+        );
+
+        $santri->load([
+            'wali',
+            'kelas',
+            'kamar.kompleks',
+            'creator',
+            'updater',
+            'perizinans' => function ($q) {
+                $q->latest();
+            },
+            'absensis' => function ($q) {
+                $q->with('sesi')->latest('tanggal');
+            },
+            'pelanggaranSantri' => function ($q) {
+                $q->with('kategoriPelanggaran')->latest('tanggal');
+            }
+        ]);
+
+        $absensiStats = [
+            'hadir' => $santri->absensis->where('status', 'hadir')->count(),
+            'sakit' => $santri->absensis->where('status', 'sakit')->count(),
+            'izin' => $santri->absensis->where('status', 'izin')->count(),
+            'alfa' => $santri->absensis->where('status', 'alfa')->count(),
+        ];
+
+        $totalPoin = $santri->pelanggaranSantri->sum('poin');
+
+        return view('tenant.santri.show', compact('santri', 'absensiStats', 'totalPoin'));
     }
 
     /*
@@ -50,7 +93,15 @@ class SantriController extends Controller
             ->orderBy('nama')
             ->get();
 
-        return view('tenant.santri.create', compact('walis'));
+        $kelas = \App\Models\Kelas::where('pondok_id', auth()->user()->pondok_id)
+            ->orderBy('nama')
+            ->get();
+
+        $kamars = \App\Models\Kamar::where('pondok_id', auth()->user()->pondok_id)
+            ->orderBy('nama')
+            ->get();
+
+        return view('tenant.santri.create', compact('walis', 'kelas', 'kamars'));
     }
 
     /*
@@ -70,8 +121,9 @@ class SantriController extends Controller
             'alamat' => 'nullable|string',
             'no_hp' => 'nullable|string|max:20',
             'tanggal_masuk' => 'nullable|date',
-
             'wali_id' => 'nullable|exists:walis,id',
+            'kamar_id' => 'nullable|exists:kamars,id',
+            'kelas_id' => 'nullable|exists:kelas,id',
             'wali_nama' => 'nullable|string|max:255',
             'wali_no_hp' => 'nullable|string|max:20',
         ]);
@@ -102,7 +154,15 @@ class SantriController extends Controller
             ->orderBy('nama')
             ->get();
 
-        return view('tenant.santri.edit', compact('santri', 'walis'));
+        $kelas = \App\Models\Kelas::where('pondok_id', auth()->user()->pondok_id)
+            ->orderBy('nama')
+            ->get();
+
+        $kamars = \App\Models\Kamar::where('pondok_id', auth()->user()->pondok_id)
+            ->orderBy('nama')
+            ->get();
+
+        return view('tenant.santri.edit', compact('santri', 'walis', 'kelas', 'kamars'));
     }
 
     /*
@@ -137,6 +197,8 @@ class SantriController extends Controller
             'tanggal_masuk' => 'nullable|date',
             'tanggal_keluar' => 'nullable|date',
             'wali_id' => 'nullable|exists:walis,id',
+            'kamar_id' => 'nullable|exists:kamars,id',
+            'kelas_id' => 'nullable|exists:kelas,id',
         ]);
 
         $dto = UpdateSantriData::fromArray($validated);

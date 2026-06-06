@@ -5,8 +5,8 @@
     {{-- HEADER --}}
     <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row mb-3">
         <div>
-            <h3 class="fw-bold mb-1">Buat Template Import</h3>
-            <h6 class="op-7 mb-0">Rakit susunan kolom Excel sesuai kebutuhan data pondok Anda.</h6>
+            <h3 class="fw-bold mb-1">Edit Template Import</h3>
+            <h6 class="op-7 mb-0">Modifikasi susunan kolom Excel sesuai perkembangan data pondok Anda.</h6>
         </div>
         <div class="ms-md-auto py-2 py-md-0">
             <a href="{{ route('tenant.import-templates.index') }}" class="btn btn-black btn-border btn-round btn-sm">
@@ -34,8 +34,9 @@
         </div>
     </div>
 
-    <form action="{{ route('tenant.import-templates.store') }}" method="POST" id="formTemplate">
+    <form action="{{ route('tenant.import-templates.update', $template->id) }}" method="POST" id="formTemplate">
         @csrf
+        @method('PUT')
         <div class="row">
             {{-- SISI KIRI: PILIHAN KOMPONEN (DIKELOMPOKKAN BERDASARKAN ENTITAS) --}}
             <div class="col-md-5">
@@ -137,7 +138,7 @@
                         {{-- Input Nama Template --}}
                         <div class="form-group p-0 mb-3">
                             <label class="fw-bold mb-1 small text-dark">Nama Template <span class="text-danger">*</span></label>
-                            <input type="text" name="nama_template" class="form-control" placeholder="Contoh: Sensus Santri Komplek A Juni 2026" value="{{ old('nama_template') }}" required>
+                            <input type="text" name="nama_template" class="form-control" placeholder="Contoh: Sensus Santri Komplek A Juni 2026" value="{{ old('nama_template', $template->nama_template) }}" required>
                         </div>
 
                         <label class="fw-bold mb-1 small text-dark">Urutan Kolom (Tarik/Seret baris untuk mengatur posisi)</label>
@@ -149,13 +150,13 @@
                                 <p class="mb-0 small">Belum ada kolom yang dipilih.<br>Klik tombol <span class="badge bg-primary px-1"><i class="fas fa-plus"></i></span> di sebelah kiri untuk merakit susunan kolom.</p>
                             </div>
                             <ul id="sortableColumns" class="list-group">
-                                {{-- Kolom ter-lock otomatis disuntikkan via JS saat document ready --}}
+                                {{-- Data yang sudah ada di database akan dirender secara dinamis via JS di bawah --}}
                             </ul>
                         </div>
 
                         <div class="mt-4 text-end">
                             <button type="submit" class="btn btn-success btn-round shadow-sm px-4">
-                                <i class="fas fa-save me-2"></i> Simpan Template
+                                <i class="fas fa-save me-2"></i> Perbarui Template
                             </button>
                         </div>
                     </div>
@@ -271,39 +272,67 @@
         });
 
         // ==========================================
-        // FITUR OTOMATIS: KUNCI KOLOM INTI (NIS, NAMA, JK)
+        // SINKRONISASI INITIAL DATA (POPULATE EXISTING FIELDS)
         // ==========================================
-        function initRequiredFields() {
+        function initExistingFields() {
+            // Definisikan kolom inti yang dilarang dihapus
             var targetKeys = ['nis', 'nama_lengkap', 'jenis_kelamin'];
+            
+            // Ambil data susunan field yang dikirim dari controller (sudah terurut berdasarkan pivot 'order')
+            var existingFields = @json($template->fields);
 
-            targetKeys.forEach(function(key) {
-                // Cari elemen di sisi kiri berdasarkan data-key
-                var leftItem = $(`.item-field-source[data-key="${key}"]`);
-                if (leftItem.length > 0) {
-                    var id = leftItem.data('id');
-                    var label = leftItem.data('label');
+            if (existingFields.length === 0) {
+                $('#emptyState').show();
+                return;
+            }
 
-                    // Suntik ke sisi kanan dengan penanda khusus (Tanpa tombol hapus & ada icon lock)
-                    var html = `
-                        <li class="list-group-item p-2 mb-2 rounded shadow-sm d-flex align-items-center justify-content-between border locked-field locked-column-item" id="col-${id}" data-source-id="${id}">
+            existingFields.forEach(function(field) {
+                var isLocked = targetKeys.includes(field.field_key);
+                var html = '';
+
+                if (isLocked) {
+                    // Jika field inti bawaan wajib (nis, nama_lengkap, jenis_kelamin)
+                    html = `
+                        <li class="list-group-item p-2 mb-2 rounded shadow-sm d-flex align-items-center justify-content-between border locked-field locked-column-item" id="col-${field.id}" data-source-id="${field.id}">
                             <div class="d-flex align-items-center">
                                 <span class="handle-sort text-muted me-3" style="cursor: grab;"><i class="fas fa-grip-vertical"></i></span>
                                 <span class="badge bg-primary text-white me-2 index-number" style="width: 25px;">0</span>
                                 <div>
-                                    <span class="fw-bold small text-dark">${label} <span class="text-danger">*</span></span>
-                                    <br><code class="text-muted" style="font-size: 9px;">Key DB: ${key} (Wajib)</code>
+                                    <span class="fw-bold small text-dark">${field.label} <span class="text-danger">*</span></span>
+                                    <br><code class="text-muted" style="font-size: 9px;">Key DB: ${field.field_key} (Wajib)</code>
                                 </div>
                             </div>
-                            <input type="hidden" name="fields[]" value="${id}">
-                            
+                            <input type="hidden" name="fields[]" value="${field.id}">
                             <span class="text-muted me-2 small" data-bs-toggle="tooltip" title="Kolom inti wajib ada di template Excel">
                                 <i class="fas fa-lock text-warning"></i>
                             </span>
                         </li>
                     `;
-                    $('#sortableColumns').append(html);
+                } else {
+                    // Jika field opsional atau custom field buatan user
+                    html = `
+                        <li class="list-group-item p-2 mb-2 rounded shadow-sm d-flex align-items-center justify-content-between border optional-column-item column-item-hover" id="col-${field.id}" data-source-id="${field.id}" style="transition: all 0.2s ease;">
+                            <div class="d-flex align-items-center">
+                                <span class="handle-sort text-muted me-3" style="cursor: grab;"><i class="fas fa-grip-vertical"></i></span>
+                                <span class="badge bg-primary text-white me-2 index-number" style="width: 25px;">0</span>
+                                <div>
+                                    <span class="fw-bold small text-dark">${field.label}</span>
+                                    <br><code class="text-muted" style="font-size: 9px;">Key DB: ${field.field_key}</code>
+                                </div>
+                            </div>
+                            <input type="hidden" name="fields[]" value="${field.id}">
+                            <button type="button" class="btn btn-xs btn-link text-danger btn-remove-column" data-id="${field.id}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </li>
+                    `;
+                }
 
-                    // Set tombol kiri langsung jadi centang hijau aktif
+                $('#sortableColumns').append(html);
+
+                // Ubah indikator tombol di sisi kiri menjadi centang hijau aktif
+                var leftItem = $(`.item-field-source[data-id="${field.id}"]`);
+                if (leftItem.length > 0) {
                     var btnLeft = leftItem.find('.btn-add-field');
                     btnLeft.removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-check"></i>');
                 }
@@ -312,8 +341,8 @@
             renumberColumns();
         }
 
-        // Jalankan penguncian field sesaat setelah halaman beres dimuat
-        initRequiredFields();
+        // Jalankan pemuatan komponen lama sesaat setelah halaman dimuat
+        initExistingFields();
 
         // Event Klik Tombol Tambah (+) ke Sisi Kanan / Hapus (✓) dari Kanan
         $('body').on('click', '.btn-add-field', function() {
@@ -322,7 +351,6 @@
             var id = item.data('id');
             var label = item.data('label');
             var key = item.data('key');
-            var isRequired = item.data('required');
 
             if (btnLeft.hasClass('btn-success')) {
                 // Toggling remove if already in template list
@@ -358,7 +386,6 @@
                         </div>
                     </div>
                     <input type="hidden" name="fields[]" value="${id}">
-                    
                     <button type="button" class="btn btn-xs btn-link text-danger btn-remove-column" data-id="${id}">
                         <i class="fas fa-trash-alt"></i>
                     </button>
@@ -385,6 +412,7 @@
         $('body').on('click', '.btn-remove-column', function() {
             var targetId = $(this).data('id');
             var item = $(this).closest('li');
+            var label = item.find('.fw-bold').text();
             
             item.remove();
             renumberColumns();
@@ -467,7 +495,7 @@
                                     </div>
                                 </div>
                             `;
-                                                                                                                
+                                                                                                                                                    
                             customCard.find('.field-list-container').append(newRowHtml);
                             
                             var currentCount = parseInt(customCard.find('.field-count-badge').text()) || 0;

@@ -1,7 +1,6 @@
 @extends('layouts.tenant')
 
 @section('content')
-<div class="page-inner" style="padding-top: 15px !important;">
     <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row mb-3">
         <div>
             <h3 class="fw-bold mb-1 text-danger"><i class="fas fa-trash-alt me-2"></i>Kotak Sampah Wali</h3>
@@ -72,7 +71,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <style>
     .mt-n1 { margin-top: -10px !important; }
