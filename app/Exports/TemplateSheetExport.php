@@ -16,12 +16,14 @@ class TemplateSheetExport implements FromArray, WithHeadings, WithEvents, WithCo
     protected $template;
     protected $withData;
     protected $orderedFields;
+    protected $filters;
 
-    public function __construct($template, $withData = false)
+    public function __construct($template, $withData = false, array $filters = [])
     {
         $this->template = $template;
         $this->withData = $withData;
         $this->orderedFields = $this->template->fields->sortBy('pivot.order');
+        $this->filters = $filters;
     }
 
     public function title(): string
@@ -89,9 +91,32 @@ class TemplateSheetExport implements FromArray, WithHeadings, WithEvents, WithCo
         }
 
         // SCENARIO B: JIKA ADMIN DOWNLOAD BERSAMA DATA RIIL
-        $santris = Santri::with(['wali', 'kamar.kompleks', 'kelas'])
-            ->where('pondok_id', auth()->user()->pondok_id)
-            ->get();
+        $query = Santri::with(['wali', 'kamar.kompleks', 'kelas', 'lemariSlot.lemari'])
+            ->where('pondok_id', auth()->user()->pondok_id);
+
+        if (!empty($this->filters['komplek_id'])) {
+            $query->whereHas('kamar', function($q) {
+                $q->where('komplek_id', $this->filters['komplek_id']);
+            });
+        }
+
+        if (!empty($this->filters['kamar_id'])) {
+            $query->where('kamar_id', $this->filters['kamar_id']);
+        }
+
+        if (!empty($this->filters['kelas_id'])) {
+            $query->where('kelas_id', $this->filters['kelas_id']);
+        }
+
+        if (!empty($this->filters['jenis_kelamin'])) {
+            $query->where('jenis_kelamin', $this->filters['jenis_kelamin']);
+        }
+
+        if (!empty($this->filters['status'])) {
+            $query->where('status', $this->filters['status']);
+        }
+
+        $santris = $query->get();
 
         foreach ($santris as $santri) {
             $row = [];
@@ -114,6 +139,15 @@ class TemplateSheetExport implements FromArray, WithHeadings, WithEvents, WithCo
                     case 'kelas': $row[] = $santri->kelas->nama ?? ''; break;
                     case 'komplek': $row[] = $santri->kamar?->kompleks?->nama ?? ''; break;
                     case 'kamar': $row[] = $santri->kamar->nama ?? ''; break;
+                    case 'kapasitas_kamar': $row[] = $santri->kamar->kapasitas ?? ''; break;
+
+                    // Relasi Lemari & Slot Lemari
+                    case 'lemari': $row[] = $santri->lemariSlot?->lemari?->nama ?? ''; break;
+                    case 'lemari_tipe': $row[] = $santri->lemariSlot?->lemari?->tipe ?? ''; break;
+                    case 'jumlah_slot': $row[] = $santri->lemariSlot?->lemari?->jumlah_slot ?? ''; break;
+                    case 'slot': $row[] = $santri->lemariSlot?->nomor_slot ?? ''; break;
+                    case 'slot_status': $row[] = $santri->lemariSlot?->status ?? ''; break;
+                    case 'slot_keterangan': $row[] = $santri->lemariSlot?->keterangan ?? ''; break;
 
                     // Relasi Wali
                     case 'wali_nama': $row[] = $santri->wali->nama ?? ''; break;

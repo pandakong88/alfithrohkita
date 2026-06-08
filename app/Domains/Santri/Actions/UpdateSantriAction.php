@@ -52,6 +52,7 @@ class UpdateSantriAction
                     'wali_id' => $data->wali_id,
                     'kamar_id' => $data->kamar_id,
                     'kelas_id' => $data->kelas_id,
+                    'custom_fields' => $data->custom_fields,
                     'updated_by' => $user->id,
                 ]);
             } catch (\Illuminate\Database\QueryException $e) {

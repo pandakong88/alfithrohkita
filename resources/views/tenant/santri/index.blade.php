@@ -37,6 +37,7 @@
             <p class="text-muted mb-0 small">Manajemen profil santri, data akademik, riwayat wali murid, dan status keaktifan.</p>
         </div>
     </div>
+    @can('manage_santri')
     <div class="d-flex gap-2 align-items-center flex-wrap">
         <a href="{{ route('tenant.santri.import') }}" class="btn btn-outline-primary btn-round shadow-sm btn-sm">
             <i class="fas fa-file-import me-1.5"></i> Import Excel
@@ -48,6 +49,7 @@
             <i class="fas fa-plus-circle me-1.5"></i> Tambah Santri
         </a>
     </div>
+    @endcan
 </div>
 
 {{-- ALERT MESSAGES --}}
@@ -213,6 +215,7 @@
                                        title="Lihat Detail">
                                         <i class="fa fa-eye"></i>
                                     </a>
+                                    @can('manage_santri')
                                     <a href="{{ route('tenant.santri.edit', $santri) }}" 
                                        class="btn btn-link btn-primary p-2" 
                                        data-bs-toggle="tooltip" 
@@ -229,6 +232,7 @@
                                             <i class="fa fa-times"></i>
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

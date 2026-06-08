@@ -46,6 +46,74 @@ class Santri extends Model
         'custom_fields' => 'json',  
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($santri) {
+            if ($santri->kamar_id) {
+                \App\Models\SantriKamarHistory::create([
+                    'pondok_id' => $santri->pondok_id,
+                    'santri_id' => $santri->id,
+                    'kamar_id' => $santri->kamar_id,
+                    'start_date' => now()->format('Y-m-d'),
+                    'created_by' => $santri->updated_by ?: (auth()->id() ?: null),
+                ]);
+            }
+        });
+
+        static::updated(function ($santri) {
+            if ($santri->wasChanged('kamar_id')) {
+                $oldKamarId = $santri->getOriginal('kamar_id');
+                $newKamarId = $santri->kamar_id;
+
+                // Close active assignment if existed
+                if ($oldKamarId) {
+                    \App\Models\SantriKamarHistory::where('santri_id', $santri->id)
+                        ->where('kamar_id', $oldKamarId)
+                        ->whereNull('end_date')
+                        ->update(['end_date' => now()->format('Y-m-d')]);
+                }
+
+                // Create new assignment if not null
+                if ($newKamarId) {
+                    \App\Models\SantriKamarHistory::create([
+                        'pondok_id' => $santri->pondok_id,
+                        'santri_id' => $santri->id,
+                        'kamar_id' => $newKamarId,
+                        'start_date' => now()->format('Y-m-d'),
+                        'created_by' => $santri->updated_by ?: (auth()->id() ?: null),
+                    ]);
+                }
+            }
+        });
+
+        static::deleted(function ($santri) {
+            // Close any active assignments when deleted
+            \App\Models\SantriKamarHistory::where('santri_id', $santri->id)
+                ->whereNull('end_date')
+                ->update(['end_date' => now()->format('Y-m-d')]);
+        });
+
+        static::restored(function ($santri) {
+            if ($santri->kamar_id) {
+                // Ensure no active assignment exists to avoid duplicates
+                $exists = \App\Models\SantriKamarHistory::where('santri_id', $santri->id)
+                    ->where('kamar_id', $santri->kamar_id)
+                    ->whereNull('end_date')
+                    ->exists();
+
+                if (!$exists) {
+                    \App\Models\SantriKamarHistory::create([
+                        'pondok_id' => $santri->pondok_id,
+                        'santri_id' => $santri->id,
+                        'kamar_id' => $santri->kamar_id,
+                        'start_date' => now()->format('Y-m-d'),
+                        'created_by' => $santri->updated_by ?: (auth()->id() ?: null),
+                    ]);
+                }
+            }
+        });
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Relationships
@@ -75,6 +143,11 @@ class Santri extends Model
     public function kamar()
     {
         return $this->belongsTo(Kamar::class);
+    }
+
+    public function lemariSlot()
+    {
+        return $this->hasOne(LemariSlot::class, 'santri_id');
     }
 
     public function perizinans()

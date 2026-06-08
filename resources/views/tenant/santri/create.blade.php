@@ -49,61 +49,89 @@
             <div class="row g-4">
                 {{-- Kolom Kiri: Identitas & Kontak --}}
                 <div class="col-lg-7">
-                    <div class="card card-custom h-100 mb-0">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="fw-bold mb-0 text-dark">
-                                <i class="fas fa-user me-2 text-primary"></i>Informasi Pribadi & Kontak
-                            </h6>
-                        </div>
-                        <div class="card-body p-4">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-slate small mb-1">Nomor Induk Santri (NIS) <span class="text-danger">*</span></label>
-                                    <input type="text" name="nis" value="{{ old('nis') }}" 
-                                           class="form-control @error('nis') is-invalid @enderror" placeholder="Contoh: 20260012" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-slate small mb-1">Jenis Kelamin <span class="text-danger">*</span></label>
-                                    <select name="jenis_kelamin" class="form-select @error('jenis_kelamin') is-invalid @enderror" required>
-                                        <option value="L" {{ old('jenis_kelamin') == 'L' ? 'selected' : '' }}>Laki-laki (Putra)</option>
-                                        <option value="P" {{ old('jenis_kelamin') == 'P' ? 'selected' : '' }}>Perempuan (Putri)</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="col-12">
-                                    <label class="form-label fw-bold text-slate small mb-1">Nama Lengkap Santri <span class="text-danger">*</span></label>
-                                    <input type="text" name="nama_lengkap" value="{{ old('nama_lengkap') }}" 
-                                           class="form-control @error('nama_lengkap') is-invalid @enderror" placeholder="Tulis sesuai nama di KK / Akta" required>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-slate small mb-1">Tempat Lahir</label>
-                                    <input type="text" name="tempat_lahir" value="{{ old('tempat_lahir') }}" 
-                                           class="form-control" placeholder="Contoh: Sleman">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-slate small mb-1">Tanggal Lahir</label>
-                                    <input type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir') }}" 
-                                           class="form-control">
-                                </div>
-
-                                <div class="col-12">
-                                    <hr class="my-2 opacity-25">
-                                </div>
-
-                                <div class="col-12">
-                                    <label class="form-label fw-bold text-slate small mb-1">Nomor HP Santri (Opsional)</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light border-slate" style="border-right: none;"><i class="fas fa-phone text-muted"></i></span>
-                                        <input type="text" name="no_hp" value="{{ old('no_hp') }}" 
-                                               class="form-control" placeholder="Contoh: 081234567xxx">
+                    <div class="d-flex flex-column gap-4">
+                        <div class="card card-custom mb-0">
+                            <div class="card-header bg-white py-3">
+                                <h6 class="fw-bold mb-0 text-dark">
+                                    <i class="fas fa-user me-2 text-primary"></i>Informasi Pribadi & Kontak
+                                </h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        @if(auth()->user()->pondok->nis_auto_generate)
+                                            <label class="form-label fw-bold text-slate small mb-1">Nomor Induk Santri (NIS) <small class="text-muted">(Opsional)</small></label>
+                                            <input type="text" name="nis" value="{{ old('nis') }}" 
+                                                   class="form-control @error('nis') is-invalid @enderror" placeholder="Kosongkan untuk otomatis">
+                                        @else
+                                            <label class="form-label fw-bold text-slate small mb-1">Nomor Induk Santri (NIS) <span class="text-danger">*</span></label>
+                                            <input type="text" name="nis" value="{{ old('nis') }}" 
+                                                   class="form-control @error('nis') is-invalid @enderror" placeholder="Contoh: 20260012" required>
+                                        @endif
                                     </div>
-                                    <small class="text-muted" style="font-size: 11px;">Gunakan kode area HP indonesia (contoh: 0812xxxx atau 62812xxxx).</small>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold text-slate small mb-1">Jenis Kelamin <span class="text-danger">*</span></label>
+                                        <select name="jenis_kelamin" class="form-select @error('jenis_kelamin') is-invalid @enderror" required>
+                                            <option value="L" {{ old('jenis_kelamin') == 'L' ? 'selected' : '' }}>Laki-laki (Putra)</option>
+                                            <option value="P" {{ old('jenis_kelamin') == 'P' ? 'selected' : '' }}>Perempuan (Putri)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-12">
+                                        <label class="form-label fw-bold text-slate small mb-1">Nama Lengkap Santri <span class="text-danger">*</span></label>
+                                        <input type="text" name="nama_lengkap" value="{{ old('nama_lengkap') }}" 
+                                               class="form-control @error('nama_lengkap') is-invalid @enderror" placeholder="Tulis sesuai nama di KK / Akta" required>
+                                    </div>
+    
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold text-slate small mb-1">Tempat Lahir</label>
+                                        <input type="text" name="tempat_lahir" value="{{ old('tempat_lahir') }}" 
+                                               class="form-control" placeholder="Contoh: Sleman">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold text-slate small mb-1">Tanggal Lahir</label>
+                                        <input type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir') }}" 
+                                               class="form-control">
+                                    </div>
+    
+                                    <div class="col-12">
+                                        <hr class="my-2 opacity-25">
+                                    </div>
+    
+                                    <div class="col-12">
+                                        <label class="form-label fw-bold text-slate small mb-1">Nomor HP Santri (Opsional)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-slate" style="border-right: none;"><i class="fas fa-phone text-muted"></i></span>
+                                            <input type="text" name="no_hp" value="{{ old('no_hp') }}" 
+                                                   class="form-control" placeholder="Contoh: 081234567xxx">
+                                        </div>
+                                        <small class="text-muted" style="font-size: 11px;">Gunakan kode area HP indonesia (contoh: 0812xxxx atau 62812xxxx).</small>
+                                    </div>
+    
+                                    <div class="col-12">
+                                        <label class="form-label fw-bold text-slate small mb-1">Alamat Asal Lengkap</label>
+                                        <textarea name="alamat" class="form-control" rows="3" placeholder="Tulis alamat rumah, RT/RW, Dusun, Desa, Kecamatan, dan Kabupaten asal">{{ old('alamat') }}</textarea>
+                                    </div>
                                 </div>
-
-                                <div class="col-12">
-                                    <label class="form-label fw-bold text-slate small mb-1">Alamat Asal Lengkap</label>
-                                    <textarea name="alamat" class="form-control" rows="3" placeholder="Tulis alamat rumah, RT/RW, Dusun, Desa, Kecamatan, dan Kabupaten asal">{{ old('alamat') }}</textarea>
+                            </div>
+                        </div>
+                        
+                        {{-- Card Informasi Tambahan --}}
+                        <div class="card card-custom mb-0">
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="fw-bold mb-0 text-dark">
+                                    <i class="fas fa-id-card-alt me-2 text-primary"></i>Informasi Tambahan (Custom Fields)
+                                </h6>
+                                <button type="button" class="btn btn-xs btn-primary btn-round px-3 shadow-none" id="btn-add-custom-field">
+                                    <i class="fas fa-plus me-1"></i> Tambah Field
+                                </button>
+                            </div>
+                            <div class="card-body p-4">
+                                <p class="text-muted text-xs mb-3">Tambahkan informasi tambahan kustom sesuai kebutuhan (misal: Golongan Darah, Silsilah/Status Sibling, Alergi, Riwayat Penyakit).</p>
+                                <div id="custom-fields-container" class="d-flex flex-column gap-3">
+                                    <div class="text-center py-3 text-muted" id="no-custom-fields-text">
+                                        <i class="fas fa-info-circle me-1.5"></i>Belum ada informasi tambahan kustom. Klik "Tambah Field" untuk menambahkan.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -340,6 +368,36 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+        // Handle dynamic custom fields
+        $('#btn-add-custom-field').on('click', function() {
+            $('#no-custom-fields-text').hide();
+            
+            let rowHtml = `
+                <div class="row g-2 align-items-center custom-field-row mb-2">
+                    <div class="col-5">
+                        <input type="text" name="custom_keys[]" class="form-control form-control-sm" placeholder="Nama Field (misal: Golongan Darah)" required style="padding: 0.45rem 0.8rem; font-size: 13px;">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" name="custom_values[]" class="form-control form-control-sm" placeholder="Nilai" required style="padding: 0.45rem 0.8rem; font-size: 13px;">
+                    </div>
+                    <div class="col-1 text-end">
+                        <button type="button" class="btn btn-link btn-xs text-danger btn-remove-custom-field p-0 border-0 bg-transparent shadow-none">
+                            <i class="fas fa-trash-alt fa-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            $('#custom-fields-container').append(rowHtml);
+        });
+        
+        $(document).on('click', '.btn-remove-custom-field', function() {
+            $(this).closest('.custom-field-row').remove();
+            if ($('.custom-field-row').length === 0) {
+                $('#no-custom-fields-text').show();
+            }
+        });
+
         // Initialize Select2 search
         $('#waliSelect').select2({
             placeholder: "Ketik nama/nomor HP wali...",

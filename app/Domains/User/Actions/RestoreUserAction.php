@@ -14,6 +14,10 @@ class RestoreUserAction
 
     public function execute(User $user): User
     {
+        if ($user->isAdminPondok() && !auth()->user()->hasAdminAccess()) {
+            abort(403, 'Anda tidak memiliki wewenang untuk memodifikasi Admin Pondok.');
+        }
+
         DB::transaction(function () use ($user) {
 
             $user->restore();

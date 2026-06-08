@@ -9,6 +9,9 @@ use App\Exports\ImportErrorExport;
 use App\Http\Controllers\Controller;
 use App\Models\ImportBatch;
 use App\Models\ImportTemplate;
+use App\Models\Komplek;
+use App\Models\Kamar;
+use App\Models\Kelas;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Jobs\ProcessImportJob;
@@ -24,8 +27,12 @@ class ImportController extends Controller
         
         // Ambil default template (bisa yang pertama atau yang namanya 'Default')
         $defaultTemplate = $templates->first(); 
+
+        $kompleks = Komplek::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
+        $kelas = Kelas::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
+        $kamars = Kamar::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
         
-        return view('tenant.import.upload', compact('templates', 'defaultTemplate'));
+        return view('tenant.import.upload', compact('templates', 'defaultTemplate', 'kompleks', 'kelas', 'kamars'));
     }
     /*
     |--------------------------------------------------------------------------
@@ -70,7 +77,104 @@ class ImportController extends Controller
             ->where('pondok_id', auth()->user()->pondok_id)
             ->findOrFail($batchId);
 
-        return view('tenant.import.preview', compact('batch'));
+        $dormStructure = $this->getDormStructure($batch);
+
+        return view('tenant.import.preview', compact('batch', 'dormStructure'));
+    }
+
+    private function getDormStructure(ImportBatch $batch): array
+    {
+        $dormStructure = [];
+        foreach ($batch->rows as $row) {
+            $p = $row->payload;
+            $komplek = $p['komplek'] ?? null;
+            $kamar = $p['kamar'] ?? null;
+            $lemari = $p['lemari'] ?? null;
+            $slot = $p['slot'] ?? null;
+            $status = $p['slot_status'] ?? 'kosong';
+            
+            if ($komplek && $kamar) {
+                if (!isset($dormStructure[$komplek])) {
+                    $dormStructure[$komplek] = [];
+                }
+                if (!isset($dormStructure[$komplek][$kamar])) {
+                    $dormStructure[$komplek][$kamar] = [
+                        'kapasitas' => $p['kapasitas_kamar'] ?? null,
+                        'lemaris' => []
+                    ];
+                }
+                if ($lemari) {
+                    if (!isset($dormStructure[$komplek][$kamar]['lemaris'][$lemari])) {
+                        $jumlahSlot = (int)($p['jumlah_slot'] ?? 4);
+                        
+                        $dormStructure[$komplek][$kamar]['lemaris'][$lemari] = [
+                            'tipe' => $p['lemari_tipe'] ?? 'lemari',
+                            'jumlah_slot' => $jumlahSlot,
+                            'slots' => [
+                                'dipakai' => 0,
+                                'kosong' => 0,
+                                'rusak' => 0,
+                                'barang' => 0,
+                                'details' => []
+                            ]
+                        ];
+                        
+                        // Initialize all slots to kosong by default
+                        for ($i = 1; $i <= $jumlahSlot; $i++) {
+                            $dormStructure[$komplek][$kamar]['lemaris'][$lemari]['slots']['details'][$i] = [
+                                'status' => 'kosong',
+                                'santri_nama' => null,
+                                'santri_nis' => null
+                            ];
+                        }
+                    }
+                    if ($slot) {
+                        $status = strtolower(trim($status));
+                        if ($status === 'active') $status = 'dipakai';
+                        if ($status === 'empty') $status = 'kosong';
+                        if (!in_array($status, ['dipakai', 'kosong', 'rusak', 'barang'])) {
+                            $status = 'kosong';
+                        }
+                        
+                        // Overwrite with real occupant details
+                        $dormStructure[$komplek][$kamar]['lemaris'][$lemari]['slots']['details'][(int)$slot] = [
+                            'status' => $status,
+                            'santri_nama' => $p['nama_lengkap'] ?? 'Tanpa Nama',
+                            'santri_nis' => $p['nis'] ?? '-'
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Count totals for each cabinet
+        foreach ($dormStructure as $komplekKey => $kamars) {
+            foreach ($kamars as $kamarKey => $kamarData) {
+                foreach ($kamarData['lemaris'] as $lemariKey => $lemariData) {
+                    $slots = $lemariData['slots']['details'];
+                    $counts = [
+                        'dipakai' => 0,
+                        'kosong' => 0,
+                        'rusak' => 0,
+                        'barang' => 0
+                    ];
+                    foreach ($slots as $slotData) {
+                        $st = $slotData['status'];
+                        if (isset($counts[$st])) {
+                            $counts[$st]++;
+                        } else {
+                            $counts['kosong']++;
+                        }
+                    }
+                    $dormStructure[$komplekKey][$kamarKey]['lemaris'][$lemariKey]['slots']['dipakai'] = $counts['dipakai'];
+                    $dormStructure[$komplekKey][$kamarKey]['lemaris'][$lemariKey]['slots']['kosong'] = $counts['kosong'];
+                    $dormStructure[$komplekKey][$kamarKey]['lemaris'][$lemariKey]['slots']['rusak'] = $counts['rusak'];
+                    $dormStructure[$komplekKey][$kamarKey]['lemaris'][$lemariKey]['slots']['barang'] = $counts['barang'];
+                }
+            }
+        }
+
+        return $dormStructure;
     }
 
 
@@ -90,6 +194,11 @@ class ImportController extends Controller
         }
 
         try {
+            $batch->update([
+                'status' => 'processing',
+                'processed_rows' => 0
+            ]);
+
             if ($batch->total_rows > 100) {
                 ProcessImportJob::dispatch($batchId, auth()->id());
                 return redirect()
@@ -104,9 +213,25 @@ class ImportController extends Controller
                 ->route('tenant.import.detail', $batchId) // Redirect ke detail supaya bisa lihat hasil perubahannya
                 ->with('success', 'Import berhasil dijalankan dan data sudah tersinkronisasi.');
         } catch (\Exception $e) {
-            // Log errornya di sini jika perlu
+            $batch->update([
+                'status' => 'failed'
+            ]);
             return back()->with('error', 'Terjadi kesalahan saat commit: ' . $e->getMessage());
         }
+    }
+
+    public function status($batchId)
+    {
+        $batch = ImportBatch::where('pondok_id', auth()->user()->pondok_id)
+            ->findOrFail($batchId);
+
+        return response()->json([
+            'status'         => $batch->status,
+            'total_rows'     => $batch->total_rows,
+            'processed_rows' => $batch->processed_rows,
+            'valid_rows'     => $batch->valid_rows,
+            'invalid_rows'   => $batch->invalid_rows,
+        ]);
     }
 
     public function history()
@@ -128,7 +253,9 @@ class ImportController extends Controller
         ->where('pondok_id', auth()->user()->pondok_id)
         ->findOrFail($batchId);
     
-        return view('tenant.import.detail', compact('batch'));
+        $dormStructure = $this->getDormStructure($batch);
+    
+        return view('tenant.import.detail', compact('batch', 'dormStructure'));
     }
 
     public function downloadErrors($batchId)

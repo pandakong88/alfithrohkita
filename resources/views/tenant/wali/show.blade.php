@@ -36,9 +36,11 @@
                 <a href="{{ route('tenant.wali.index') }}" class="btn btn-light btn-round border shadow-sm btn-sm px-3.5">
                     <i class="fas fa-arrow-left me-1.5"></i> Kembali
                 </a>
+                @can('manage_wali')
                 <a href="{{ route('tenant.wali.edit', $wali) }}" class="btn btn-primary btn-round shadow-sm btn-sm px-3.5">
                     <i class="fas fa-edit me-1.5"></i> Edit Wali
                 </a>
+                @endcan
             </div>
         </div>
     </div>
@@ -209,7 +211,9 @@
                         <i class="fas fa-user-slash fa-3x mb-3 text-muted-light"></i>
                         <p class="mb-0 fw-semibold">Belum Ada Santri Terhubung</p>
                         <p class="text-xs mb-0">Wali murid ini belum dihubungkan dengan data santri manapun.</p>
+                        @can('manage_santri')
                         <a href="{{ route('tenant.santri.create') }}" class="btn btn-link btn-xs mt-2 decoration-none fw-bold"><i class="fas fa-plus-circle me-1"></i> Daftarkan Santri Baru</a>
+                        @endcan
                     </div>
                 @endif
             </div>

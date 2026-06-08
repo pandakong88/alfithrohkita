@@ -18,6 +18,10 @@ class DeleteUserAction
             abort(403, 'Super Admin tidak dapat dihapus.');
         }
 
+        if ($user->isAdminPondok() && !auth()->user()->hasAdminAccess()) {
+            abort(403, 'Anda tidak memiliki wewenang untuk menghapus Admin Pondok.');
+        }
+
         if ($user->id === auth()->id()) {
             abort(403, 'Anda tidak bisa menghapus akun sendiri.');
         }

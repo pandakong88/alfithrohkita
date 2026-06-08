@@ -27,7 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Santri Data
-    Route::prefix('santri')->group(function () {
+    Route::prefix('santri')->middleware('permission:manage_santri')->group(function () {
         Route::get('/', [SantriController::class, 'index']);
         Route::get('/filters', [SantriController::class, 'getFilterData']);
         Route::get('/{id}', [SantriController::class, 'show']);
@@ -37,16 +37,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('mobile')->group(function () {
         
         // --- Perizinan Module ---
-        Route::get('/templates', [PerizinanController::class, 'templates']);
-        Route::get('/template-variables', [TemplateVariableController::class, 'index']);
-        Route::get('/perizinan', [PerizinanController::class, 'index']);
-        Route::get('/perizinan/{id}', [PerizinanController::class, 'show']);
-        Route::post('/perizinan', [PerizinanController::class, 'store']);
-        Route::post('/perizinan/scan', [PerizinanController::class, 'scan']);
-        Route::post('/perizinan/{id}/manual', [PerizinanController::class, 'manual']);
+        Route::middleware('permission:manage_perizinan')->group(function () {
+            Route::get('/templates', [PerizinanController::class, 'templates']);
+            Route::get('/template-variables', [TemplateVariableController::class, 'index']);
+            Route::get('/perizinan', [PerizinanController::class, 'index']);
+            Route::get('/perizinan/{id}', [PerizinanController::class, 'show']);
+            Route::post('/perizinan', [PerizinanController::class, 'store']);
+            Route::post('/perizinan/scan', [PerizinanController::class, 'scan']);
+            Route::post('/perizinan/{id}/manual', [PerizinanController::class, 'manual']);
+        });
 
         // --- Absensi Module ---
-        Route::prefix('absensi')->group(function () {
+        Route::prefix('absensi')->middleware('permission:manage_absensi')->group(function () {
             Route::get('/sesi', [AbsensiController::class, 'getSesi']); // Daftar sesi untuk dashboard
             Route::get('/santri/{sesi_id}', [AbsensiController::class, 'getSantriBySesi']); // List santri per sesi
             Route::post('/scan', [AbsensiController::class, 'scanSantri']); // Ambil data santri via QR
@@ -55,11 +57,12 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // --- 2. Pelanggaran Module (Kategori Pelanggaran) ---
-        Route::apiResource('kategori-pelanggaran', KategoriPelanggaranController::class);
-
-        Route::post('pelanggaran', [PelanggaranSantriController::class, 'store']);
-        Route::put('pelanggaran/{id}', [PelanggaranSantriController::class, 'update']); // <-- Tambahkan ini
-        Route::delete('pelanggaran/{id}', [PelanggaranSantriController::class, 'destroy']);
+        Route::middleware('permission:manage_pelanggaran')->group(function () {
+            Route::apiResource('kategori-pelanggaran', KategoriPelanggaranController::class);
+            Route::post('pelanggaran', [PelanggaranSantriController::class, 'store']);
+            Route::put('pelanggaran/{id}', [PelanggaranSantriController::class, 'update']);
+            Route::delete('pelanggaran/{id}', [PelanggaranSantriController::class, 'destroy']);
+        });
 
     });
 

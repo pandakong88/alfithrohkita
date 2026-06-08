@@ -30,8 +30,13 @@ trait BelongsToTenant
 
             $user = auth()->user();
 
-            // Super admin boleh lihat semua
-            if ($user->hasRole('super_admin')) {
+            // Super admin boleh lihat semua (Bypass global scope untuk mencegah loop tak terbatas)
+            $isSuperAdmin = $user->roles()
+                ->withoutGlobalScopes()
+                ->where('name', 'super_admin')
+                ->exists();
+
+            if ($isSuperAdmin) {
                 return;
             }
 

@@ -12,21 +12,32 @@ class SantriResolver
      */
     public function resolve(int $pondokId, ?array $payload): ?Santri
     {
-        // 1. Early Return: Jika di template dinamis user gak milih / gak isi NIS, skip entitas ini!
-        if (empty($payload) || empty($payload['nis'])) {
+        if (empty($payload)) {
             return null;
+        }
+
+        $nis = $payload['nis'] ?? null;
+
+        if (empty($nis)) {
+            $pondok = \App\Models\Pondok::find($pondokId);
+            if ($pondok && $pondok->nis_auto_generate) {
+                $nisGenerator = new \App\Domains\Santri\Services\NisGeneratorService();
+                $nis = $nisGenerator->generate($pondokId, $payload['tanggal_masuk'] ?? null);
+            } else {
+                return null;
+            }
         }
 
         // 2. Cari di database berdasarkan multi-tenant pondok_id dan NIS
         $santri = Santri::where('pondok_id', $pondokId)
-            ->where('nis', $payload['nis'])
+            ->where('nis', $nis)
             ->first();
 
         // 3. JANGAN DI-CREATE DULU. Pakai 'new Santri' agar hemat query dan aman dari constraint NOT NULL
         if (!$santri) {
             $santri = new Santri([
                 'pondok_id' => $pondokId,
-                'nis'       => $payload['nis'],
+                'nis'       => $nis,
                 'status'    => $payload['status'] ?? 'active', // Default value jika di excel kosong
             ]);
         }

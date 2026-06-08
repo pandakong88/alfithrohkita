@@ -112,8 +112,11 @@ class SantriController extends Controller
 
     public function store(Request $request, CreateSantriAction $action)
     {
+        $pondok = \App\Models\Pondok::findOrFail(auth()->user()->pondok_id);
+        $nisRule = $pondok->nis_auto_generate ? 'nullable|string|max:50' : 'required|string|max:50';
+
         $validated = $request->validate([
-            'nis' => 'required|string|max:50',
+            'nis' => $nisRule,
             'nama_lengkap' => 'required|string|max:255',
             'jenis_kelamin' => ['required', Rule::in(['L', 'P'])],
             'tempat_lahir' => 'nullable|string|max:255',
@@ -127,6 +130,19 @@ class SantriController extends Controller
             'wali_nama' => 'nullable|string|max:255',
             'wali_no_hp' => 'nullable|string|max:20',
         ]);
+
+        $customFields = [];
+        if ($request->has('custom_keys') && $request->has('custom_values')) {
+            $keys = $request->input('custom_keys', []);
+            $values = $request->input('custom_values', []);
+            foreach ($keys as $index => $key) {
+                $trimmedKey = trim($key);
+                if ($trimmedKey !== '') {
+                    $customFields[$trimmedKey] = $values[$index] ?? '';
+                }
+            }
+        }
+        $validated['custom_fields'] = $customFields;
 
         $dto = CreateSantriData::fromArray($validated);
 
@@ -200,6 +216,19 @@ class SantriController extends Controller
             'kamar_id' => 'nullable|exists:kamars,id',
             'kelas_id' => 'nullable|exists:kelas,id',
         ]);
+
+        $customFields = [];
+        if ($request->has('custom_keys') && $request->has('custom_values')) {
+            $keys = $request->input('custom_keys', []);
+            $values = $request->input('custom_values', []);
+            foreach ($keys as $index => $key) {
+                $trimmedKey = trim($key);
+                if ($trimmedKey !== '') {
+                    $customFields[$trimmedKey] = $values[$index] ?? '';
+                }
+            }
+        }
+        $validated['custom_fields'] = $customFields;
 
         $dto = UpdateSantriData::fromArray($validated);
 

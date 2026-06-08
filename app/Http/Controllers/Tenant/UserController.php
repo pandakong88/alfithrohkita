@@ -141,7 +141,6 @@ class UserController extends Controller
 
     public function restore($id, RestoreUserAction $action)
     {
-        return ('halo');
         $user = User::onlyTrashed()->findOrFail($id);
     
         $this->ensureTenantAccess($user);
@@ -157,9 +156,13 @@ class UserController extends Controller
     {
         if (
             $user->pondok_id !== auth()->user()->pondok_id ||
-            $user->hasRole('super_admin')
+            $user->isSuperAdmin()
         ) {
             abort(403);
+        }
+
+        if ($user->isAdminPondok() && !auth()->user()->hasAdminAccess()) {
+            abort(403, 'Anda tidak memiliki wewenang untuk memodifikasi Admin Pondok.');
         }
     }
 }

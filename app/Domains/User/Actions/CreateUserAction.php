@@ -28,6 +28,10 @@ class CreateUserAction
             ->where('pondok_id', auth()->user()->pondok_id)
             ->firstOrFail();
 
+        if (\Illuminate\Support\Str::startsWith($role->name, 'admin_pondok') && !auth()->user()->hasAdminAccess()) {
+            abort(403, 'Anda tidak memiliki wewenang untuk memberikan peran Admin Pondok.');
+        }
+
         $user->assignRole($role);
 
         // 🔥 Audit Log

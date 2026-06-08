@@ -10,9 +10,11 @@
             </h4>
             <p class="text-muted small mb-0">Panel khusus Kyai & Admin untuk mencatat, mengevaluasi, dan melacak akumulasi poin pelanggaran santri.</p>
         </div>
+        @can('manage_pelanggaran')
         <button type="button" class="btn btn-danger shadow-sm fw-bold d-flex align-items-center gap-2 px-4 py-2 rounded-3" data-bs-toggle="modal" data-bs-target="#modalTambahPelanggaran">
             <i class="bi bi-plus-circle-fill"></i> Catat Pelanggaran Baru
         </button>
+        @endcan
     </div>
 
     <div class="row g-3 mb-4">
@@ -106,7 +108,9 @@
                             <th class="py-3 text-center">Poin</th>
                             <th class="py-3">Petugas</th>
                             <th class="py-3 text-center">Bukti</th>
+                            @can('manage_pelanggaran')
                             <th class="pe-3 py-3 text-end">Aksi</th>
+                            @endcan
                         </tr>
                     </thead>
                     <tbody>
@@ -147,6 +151,7 @@
                                         <span class="text-muted small">-</span>
                                     @endif
                                 </td>
+                                @can('manage_pelanggaran')
                                 <td class="pe-3 text-end">
                                     <div class="d-inline-flex gap-2">
                                         <button type="button" class="btn btn-primary btn-sm rounded-3 px-2.5 py-1.5 d-flex align-items-center gap-1 btn-edit-pelanggaran" 
@@ -166,6 +171,7 @@
                                         </form>
                                     </div>
                                 </td>
+                                @endcan
                             </tr>
                         @endforeach
                     </tbody>

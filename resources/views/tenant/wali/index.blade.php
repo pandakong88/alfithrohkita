@@ -22,6 +22,7 @@
             <p class="text-muted mb-0 small">Pusat data informasi orang tua, kontak WhatsApp, dan hubungan santri.</p>
         </div>
     </div>
+    @can('manage_wali')
     <div class="d-flex gap-2 align-items-center flex-wrap">
         <a href="{{ route('tenant.wali.import.history') }}" class="btn btn-light btn-round border shadow-sm btn-sm">
             <i class="fas fa-history text-info me-1.5"></i> Riwayat Import
@@ -36,6 +37,7 @@
             <i class="fas fa-plus-circle me-1.5"></i> Registrasi Wali
         </a>
     </div>
+    @endcan
 </div>
 
 {{-- ALERT MESSAGES --}}
@@ -160,6 +162,7 @@
                                        title="Lihat Detail">
                                         <i class="fa fa-eye"></i>
                                     </a>
+                                    @can('manage_wali')
                                     <a href="{{ route('tenant.wali.edit', $wali) }}" 
                                        class="btn btn-link btn-primary p-2" 
                                        data-bs-toggle="tooltip" 
@@ -176,6 +179,7 @@
                                             <i class="fa fa-times"></i>
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

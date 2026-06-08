@@ -49,7 +49,10 @@
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item py-2" href="{{ route('tenant.import-templates.download', [$template->id, 'with_data' => 'true']) }}">
+                                <a class="dropdown-item py-2 btn-trigger-download-modal" 
+                                   href="javascript:void(0)"
+                                   data-template-id="{{ $template->id }}"
+                                   data-template-name="{{ $template->nama_template }}">
                                     <i class="fas fa-database text-primary me-2" style="width: 16px;"></i> 
                                     <strong>Download + Data Santri</strong>
                                     <small class="text-muted d-block mt-0.5">Untuk edit / update massal data lama</small>
@@ -320,4 +323,159 @@
     }
     .gap-3 { gap: 1rem !important; }
 </style>
+
+{{-- MODAL DOWNLOAD FILTER --}}
+<div class="modal fade" id="downloadFilterModal" tabindex="-1" aria-labelledby="downloadFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+            <div class="modal-header border-0 text-white py-3 px-4" style="border-top-left-radius: 15px; border-top-right-radius: 15px; background: linear-gradient(135deg, #1d7af3 0%, #1572e8 100%);">
+                <h5 class="modal-title fw-bold" id="downloadFilterModalLabel">
+                    <i class="fas fa-file-excel me-2"></i> Pengaturan Unduhan Data
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="downloadFilterForm" method="GET" action="">
+                <input type="hidden" name="with_data" value="true">
+                <div class="modal-body p-4" style="font-size: 13px;">
+                    <p class="text-muted mb-3">Sesuaikan opsi filter dan nama file di bawah ini. Kosongkan filter jika ingin mengunduh seluruh data santri.</p>
+                    
+                    {{-- Nama Berkas --}}
+                    <div class="form-group mb-3 px-0">
+                        <label for="custom_filename" class="form-label fw-bold text-dark mb-1">Nama File Hasil Unduhan</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0 text-success"><i class="fas fa-file-alt"></i></span>
+                            <input type="text" class="form-control border-start-0" id="custom_filename" name="filename" placeholder="Contoh: Sensus_Santri_Komplek_A" style="font-size: 13px;">
+                            <span class="input-group-text bg-light border-start-0 text-muted">.xlsx</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">Nama file akan dibersihkan dari karakter ilegal.</small>
+                    </div>
+
+                    <div class="row">
+                        {{-- Komplek --}}
+                        <div class="col-md-6 mb-3">
+                            <label for="filter_komplek" class="form-label fw-bold text-dark mb-1">Komplek</label>
+                            <select class="form-select form-control" id="filter_komplek" name="komplek_id" style="font-size: 13px;">
+                                <option value="">-- Semua Komplek --</option>
+                                @foreach($kompleks as $komplek)
+                                    <option value="{{ $komplek->id }}">{{ $komplek->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Kamar --}}
+                        <div class="col-md-6 mb-3">
+                            <label for="filter_kamar" class="form-label fw-bold text-dark mb-1">Kamar</label>
+                            <select class="form-select form-control" id="filter_kamar" name="kamar_id" style="font-size: 13px;">
+                                <option value="">-- Semua Kamar --</option>
+                                @foreach($kamars as $kamar)
+                                    <option value="{{ $kamar->id }}" data-komplek-id="{{ $kamar->komplek_id }}">{{ $kamar->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        {{-- Kelas --}}
+                        <div class="col-md-6 mb-3">
+                            <label for="filter_kelas" class="form-label fw-bold text-dark mb-1">Kelas</label>
+                            <select class="form-select form-control" id="filter_kelas" name="kelas_id" style="font-size: 13px;">
+                                <option value="">-- Semua Kelas --</option>
+                                @foreach($kelas as $kls)
+                                    <option value="{{ $kls->id }}">{{ $kls->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Jenis Kelamin --}}
+                        <div class="col-md-6 mb-3">
+                            <label for="filter_jk" class="form-label fw-bold text-dark mb-1">Jenis Kelamin</label>
+                            <select class="form-select form-control" id="filter_jk" name="jenis_kelamin" style="font-size: 13px;">
+                                <option value="">-- Semua Gender --</option>
+                                <option value="L">Laki-laki (L)</option>
+                                <option value="P">Perempuan (P)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Status --}}
+                    <div class="form-group mb-0 px-0">
+                        <label for="filter_status" class="form-label fw-bold text-dark mb-1">Status Keaktifan</label>
+                        <select class="form-select form-control" id="filter_status" name="status" style="font-size: 13px;">
+                            <option value="">-- Semua Status --</option>
+                            <option value="active">Active</option>
+                            <option value="nonaktif">Nonaktif</option>
+                            <option value="lulus">Lulus</option>
+                            <option value="keluar">Keluar</option>
+                            <option value="izin">Izin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light border btn-round btn-sm" data-bs-dismiss="modal" style="font-size: 12px; padding: 6px 16px;">Batal</button>
+                    <button type="submit" class="btn btn-success btn-round btn-sm" style="font-size: 12px; padding: 6px 16px;">
+                        <i class="fas fa-download me-1"></i> Download Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        // Tampilkan Modal Download dengan Filter
+        $('.btn-trigger-download-modal').on('click', function(e) {
+            e.preventDefault();
+            var templateId = $(this).data('template-id');
+            var templateName = $(this).data('template-name');
+            
+            // Set action URL pada form
+            var urlPattern = "{{ route('tenant.import-templates.download', ':id') }}";
+            $('#downloadFilterForm').attr('action', urlPattern.replace(':id', templateId));
+            
+            // Set default nama berkas
+            var cleanTemplateName = templateName.replace(/\s+/g, '_');
+            $('#custom_filename').val(cleanTemplateName + '_dengan_data');
+            
+            // Reset filters
+            $('#filter_komplek').val('');
+            $('#filter_kamar').val('');
+            $('#filter_kelas').val('');
+            $('#filter_jk').val('');
+            $('#filter_status').val('');
+            
+            // Show all rooms initially
+            $('#filter_kamar option').show();
+            
+            // Tampilkan modal
+            $('#downloadFilterModal').modal('show');
+        });
+
+        // Filter Kamar secara dinamis berdasarkan Komplek yang dipilih
+        $('#filter_komplek').on('change', function() {
+            var komplekId = $(this).val();
+            var $kamarSelect = $('#filter_kamar');
+            
+            // Reset pilihan kamar
+            $kamarSelect.val('');
+            
+            if (komplekId === '') {
+                // Tampilkan semua kamar jika komplek tidak dipilih
+                $kamarSelect.find('option').show();
+            } else {
+                // Sembunyikan kamar yang tidak sesuai komplek, tampilkan yang sesuai
+                $kamarSelect.find('option').each(function() {
+                    var optionKomplekId = $(this).attr('data-komplek-id');
+                    if (optionKomplekId === undefined || optionKomplekId === '' || optionKomplekId === komplekId) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            }
+        });
+    });
+</script>
+@endpush

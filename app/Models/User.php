@@ -9,11 +9,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
-
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasApiTokens, Notifiable, SoftDeletes,HasRoles;
+    use HasFactory, HasApiTokens, Notifiable, SoftDeletes, HasRoles;
     
 
     /**
@@ -51,12 +50,28 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
     public function pondok()
     {
         return $this->belongsTo(Pondok::class);
+    }
+
+    public function isAdminPondok(): bool
+    {
+        return $this->hasRole('admin_pondok') || $this->hasRole('admin_pondok_' . $this->pondok_id);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    public function hasAdminAccess(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdminPondok();
     }
 
 }

@@ -13,7 +13,8 @@ use Illuminate\Validation\ValidationException;
 class CreateSantriAction
 {
     public function __construct(
-        protected LogActivityAction $logActivity
+        protected LogActivityAction $logActivity,
+        protected \App\Domains\Santri\Services\NisGeneratorService $nisGenerator
     ) {}
 
     public function execute(CreateSantriData $data): Santri
@@ -22,6 +23,19 @@ class CreateSantriAction
 
             $user = Auth::user();
             $pondokId = $user->pondok_id;
+
+            // Resolve NIS (auto generate jika kosong dan setting aktif)
+            $nis = $data->nis;
+            if (empty($nis)) {
+                $pondok = \App\Models\Pondok::find($pondokId);
+                if ($pondok && $pondok->nis_auto_generate) {
+                    $nis = $this->nisGenerator->generate($pondokId, $data->tanggal_masuk);
+                } else {
+                    throw ValidationException::withMessages([
+                        'nis' => 'NIS wajib diisi.'
+                    ]);
+                }
+            }
 
             // Validasi wali milik pondok
             if ($data->wali_id) {
@@ -42,7 +56,7 @@ class CreateSantriAction
                     'wali_id' => $data->wali_id,
                     'kamar_id' => $data->kamar_id,
                     'kelas_id' => $data->kelas_id,
-                    'nis' => $data->nis,
+                    'nis' => $nis,
                     'nama_lengkap' => $data->nama_lengkap,
                     'jenis_kelamin' => $data->jenis_kelamin,
                     'tempat_lahir' => $data->tempat_lahir,
@@ -51,6 +65,7 @@ class CreateSantriAction
                     'no_hp' => $data->no_hp,
                     'tanggal_masuk' => $data->tanggal_masuk,
                     'status' => 'active',
+                    'custom_fields' => $data->custom_fields,
                     'created_by' => $user->id,
                 ]);
             } catch (\Illuminate\Database\QueryException $e) {

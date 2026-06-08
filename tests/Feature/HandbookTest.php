@@ -47,8 +47,11 @@ class HandbookTest extends TestCase
 
         // Setup Spatie permissions
         \Spatie\Permission\Models\Permission::findOrCreate('manage_users');
+        \Spatie\Permission\Models\Permission::findOrCreate('manage_cms');
         $this->adminA->givePermissionTo('manage_users');
+        $this->adminA->givePermissionTo('manage_cms');
         $this->adminB->givePermissionTo('manage_users');
+        $this->adminB->givePermissionTo('manage_cms');
     }
 
     public function test_tenant_admin_can_crud_handbooks_with_automatic_isolation(): void

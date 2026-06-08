@@ -16,6 +16,7 @@
 
         <div class="ms-md-auto py-2 py-md-0">
             <div class="d-flex flex-row align-items-center justify-content-end">
+                @can('manage_perizinan')
                 <div class="header-search mr-3 me-3">
                     <div class="input-group quick-scan-group shadow-sm">
                         <div class="input-group-prepend">
@@ -34,6 +35,7 @@
                 <a href="{{ route('tenant.perizinan.create') }}" class="btn btn-primary btn-round px-4 shadow-sm fw-bold">
                     <i class="fas fa-plus-circle mr-2 me-2"></i> Buat Izin Baru
                 </a>
+                @endcan
             </div>
         </div>
     </div>

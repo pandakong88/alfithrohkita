@@ -17,6 +17,7 @@
                     <i class="fa fa-arrow-left mr-2 me-2"></i> Kembali
                 </a>
                 @if($perizinan->status != 'kembali')
+                    @can('manage_perizinan')
                     <button type="button" onclick="konfirmasiKembali()" class="btn btn-success btn-round mr-2 me-2">
                         <i class="fa fa-check mr-2 me-2"></i> Tandai Sudah Kembali
                     </button>
@@ -24,6 +25,7 @@
                     <form id="form-kembali" action="{{ route('tenant.perizinan.kembali', $perizinan->id) }}" method="POST" style="display: none;">
                         @csrf
                     </form>
+                    @endcan
                 @endif
             </div>
         </div>

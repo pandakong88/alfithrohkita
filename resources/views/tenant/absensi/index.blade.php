@@ -65,10 +65,12 @@
                                          <i class="fas fa-print mr-1"></i> Print Laporan
                                      </a>
                                     
+                                    @can('manage_absensi')
                                     <span class="badge badge-light border text-dark">
                                         <i class="fas fa-info-circle text-primary mr-1"></i> 
                                         Klik kiri: Status | Klik kanan: Catatan
                                     </span>
+                                    @endcan
                                 </div>
                             </div>
                         </div>
@@ -210,6 +212,11 @@
     .cell-action { cursor: pointer; padding: 5px !important; border-bottom: 1px solid #f1f4f8 !important; border-right: 1px solid #f1f4f8 !important; position: relative; }
     .status-box { width: 32px; height: 32px; margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-weight: 800; font-size: 12px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .cell-action:hover .status-box { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); filter: brightness(1.1); }
+    
+    @cannot('manage_absensi')
+    .cell-action { cursor: default !important; }
+    .cell-action:hover .status-box { transform: none !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important; filter: none !important; }
+    @endcan
 
     .rekap-header {
         font-size: 10px;
@@ -299,6 +306,7 @@ $(document).ready(function() {
         });
     });
 
+    @can('manage_absensi')
     // 2. Status Cycle Logic
     const nextStatus = { 'hadir':'sakit', 'sakit':'izin', 'izin':'alfa', 'alfa':'terlambat', 'terlambat':'hadir' };
     const statusLabel = { 'hadir':'H', 'sakit':'S', 'izin':'I', 'alfa':'A', 'terlambat':'T' };
@@ -337,6 +345,7 @@ $(document).ready(function() {
         
         $('#modalCatatan').modal('show');
     });
+    @endcan
 
     $('#btnSimpanCatatan').on('click', function() {
         let santriId = $('#modal_santri').val();

@@ -17,6 +17,14 @@ class ToggleUserStatusAction
             abort(403);
         }
 
+        if ($user->isAdminPondok() && !auth()->user()->hasAdminAccess()) {
+            abort(403, 'Anda tidak memiliki wewenang untuk memodifikasi Admin Pondok.');
+        }
+
+        if ($user->id === auth()->id()) {
+            abort(403, 'Anda tidak bisa menonaktifkan akun sendiri.');
+        }
+
         if ($user->pondok_id !== auth()->user()->pondok_id) {
             abort(403);
         }

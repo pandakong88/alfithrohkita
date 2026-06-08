@@ -16,7 +16,6 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Super Admin Arjunanda',
                 'password' => Hash::make('password'),
-                'role' => 'super_admin',
                 'is_active' => true,
             ]
         );
@@ -28,7 +27,6 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Admin Al-Fitroh',
                 'password' => Hash::make('password'),
-                'role' => 'admin_pondok',
                 'pondok_id' => 3,
                 'is_active' => true,
             ]

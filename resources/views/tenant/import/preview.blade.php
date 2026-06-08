@@ -177,6 +177,178 @@
                         </div>
                     </div>
                 </div>
+        @endif
+
+        @if(!empty($dormStructure))
+            <div class="card card-custom mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">
+                        <i class="fas fa-sitemap me-2 text-success"></i>Visualisasi Struktur Asrama (Deteksi Excel)
+                    </h5>
+                    <p class="text-muted text-xs mb-0 mt-1">Hierarki komplek, kamar, lemari, dan slot yang terdeteksi di dalam berkas Excel yang diunggah.</p>
+                </div>
+                <div class="card-body p-4">
+                    <div class="accordion accordion-custom" id="dormAccordion">
+                        @foreach($dormStructure as $komplekNama => $kamars)
+                            @php
+                                $isFirst = $loop->first;
+                                $komplekId = 'komplek_' . Str::slug($komplekNama);
+                                $totalRooms = count($kamars);
+                                $totalSlots = 0;
+                                $occupiedSlots = 0;
+                                foreach ($kamars as $kamarData) {
+                                    if (!empty($kamarData['lemaris'])) {
+                                        foreach ($kamarData['lemaris'] as $lemariData) {
+                                            $dipakai = $lemariData['slots']['dipakai'] ?? 0;
+                                            $kosong = $lemariData['slots']['kosong'] ?? 0;
+                                            $rusak = $lemariData['slots']['rusak'] ?? 0;
+                                            $barang = $lemariData['slots']['barang'] ?? 0;
+                                            $totalSlots += ($dipakai + $kosong + $rusak + $barang);
+                                            $occupiedSlots += $dipakai;
+                                        }
+                                    }
+                                }
+                            @endphp
+                            <div class="accordion-item border-0 mb-3 rounded-3 overflow-hidden" style="border: 1px solid #e2e8f0 !important; border-radius: 8px;">
+                                <h2 class="accordion-header" id="heading_{{ $komplekId }}">
+                                    <button class="accordion-button {{ $isFirst ? '' : 'collapsed' }} py-3 px-4 fw-bold text-dark d-flex align-items-center gap-3" 
+                                            type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse_{{ $komplekId }}" 
+                                            aria-expanded="{{ $isFirst ? 'true' : 'false' }}" 
+                                            aria-controls="collapse_{{ $komplekId }}"
+                                            style="background: #f8fafc; box-shadow: none; border-radius: 8px;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fas fa-building text-primary me-1 fa-lg"></i>
+                                            <span>{{ $komplekNama }}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 ms-auto me-3">
+                                            <span class="badge bg-primary-soft text-primary rounded-pill font-size-11 px-2.5">
+                                                {{ $totalRooms }} Kamar
+                                            </span>
+                                            <span class="badge bg-success-soft text-success rounded-pill font-size-11 px-2.5">
+                                                {{ $occupiedSlots }}/{{ $totalSlots }} Slot Terpakai
+                                            </span>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse_{{ $komplekId }}" 
+                                     class="accordion-collapse collapse {{ $isFirst ? 'show' : '' }}" 
+                                     aria-labelledby="heading_{{ $komplekId }}" 
+                                     data-bs-parent="#dormAccordion">
+                                    <div class="accordion-body p-4 bg-white">
+                                        <div class="row g-3">
+                                            @foreach($kamars as $kamarNama => $kamarData)
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="p-3 rounded-3 border bg-white shadow-xs h-100" style="border-radius: 8px; border: 1px solid #f1f5f9 !important;">
+                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                            <span class="fw-bold text-dark text-xs">
+                                                                <i class="fas fa-door-open text-warning me-1.5"></i>{{ $kamarNama }}
+                                                            </span>
+                                                            @if($kamarData['kapasitas'])
+                                                                <span class="text-muted text-xs" style="font-size: 10.5px;">Kaps: <strong>{{ $kamarData['kapasitas'] }} Orang</strong></span>
+                                                            @endif
+                                                        </div>
+                                                        
+                                                        @if(!empty($kamarData['lemaris']))
+                                                            <div class="d-flex flex-column gap-2 mt-2">
+                                                                @foreach($kamarData['lemaris'] as $lemariNama => $lemariData)
+                                                                    @php
+                                                                        $dipakai = $lemariData['slots']['dipakai'] ?? 0;
+                                                                        $kosong = $lemariData['slots']['kosong'] ?? 0;
+                                                                        $rusak = $lemariData['slots']['rusak'] ?? 0;
+                                                                        $barang = $lemariData['slots']['barang'] ?? 0;
+                                                                        $total = $dipakai + $kosong + $rusak + $barang;
+                                                                    @endphp
+                                                                    <div class="p-2.5 rounded-2 border-0" style="font-size: 11px; background: #f8fafc; border-radius: 6px;">
+                                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                            <span class="text-dark font-weight-600">
+                                                                                <i class="fas fa-box text-muted me-1.5"></i>{{ $lemariNama }}
+                                                                                <span class="text-muted fw-normal" style="font-size: 10px;">({{ ucfirst(str_replace('_', ' ', $lemariData['tipe'])) }})</span>
+                                                                            </span>
+                                                                            <span class="text-slate font-weight-500" style="font-size: 10px;">{{ $dipakai }}/{{ $total }} Slot</span>
+                                                                        </div>
+                                                                        
+                                                                        {{-- Multi-colored progress bar for slots --}}
+                                                                        <div class="progress mb-1.5" style="height: 6px; border-radius: 3px; background-color: #e2e8f0; display: flex;">
+                                                                            @if($total > 0)
+                                                                                @if($dipakai > 0)
+                                                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ ($dipakai / $total) * 100 }}%" title="{{ $dipakai }} Dipakai"></div>
+                                                                                @endif
+                                                                                @if($barang > 0)
+                                                                                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ ($barang / $total) * 100 }}%" title="{{ $barang }} Barang"></div>
+                                                                                @endif
+                                                                                @if($rusak > 0)
+                                                                                    <div class="progress-bar bg-danger" role="progressbar" style="width: {{ ($rusak / $total) * 100 }}%" title="{{ $rusak }} Rusak"></div>
+                                                                                @endif
+                                                                                @if($kosong > 0)
+                                                                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ ($kosong / $total) * 100 }}%" title="{{ $kosong }} Kosong"></div>
+                                                                                @endif
+                                                                            @endif
+                                                                        </div>
+                                                                        
+                                                                        <div class="d-flex flex-wrap gap-2 text-xs text-muted mt-1.5" style="font-size: 9px;">
+                                                                            @if($kosong > 0)
+                                                                                <span><i class="fas fa-circle text-success me-1"></i>{{ $kosong }} Ksg</span>
+                                                                            @endif
+                                                                            @if($dipakai > 0)
+                                                                                <span><i class="fas fa-circle text-primary me-1"></i>{{ $dipakai }} Tpk</span>
+                                                                            @endif
+                                                                            @if($barang > 0)
+                                                                                <span><i class="fas fa-circle text-warning me-1"></i>{{ $barang }} Brg</span>
+                                                                            @endif
+                                                                            @if($rusak > 0)
+                                                                                <span><i class="fas fa-circle text-danger me-1"></i>{{ $rusak }} Rsk</span>
+                                                                            @endif
+                                                                        </div>
+
+                                                                        {{-- Mini Slot Grid --}}
+                                                                        <div class="d-flex flex-wrap gap-1 mt-2.5 pt-2 border-top border-light-subtle">
+                                                                            @foreach($lemariData['slots']['details'] as $slotNum => $slotDetail)
+                                                                                @php
+                                                                                    $st = $slotDetail['status'];
+                                                                                    $nama = $slotDetail['santri_nama'];
+                                                                                    $nis = $slotDetail['santri_nis'];
+                                                                                    
+                                                                                    $squareBg = 'bg-success text-white'; // Kosong
+                                                                                    if ($st === 'dipakai') {
+                                                                                        $squareBg = 'bg-primary text-white';
+                                                                                    } elseif ($st === 'rusak') {
+                                                                                        $squareBg = 'bg-danger text-white';
+                                                                                    } elseif ($st === 'barang') {
+                                                                                        $squareBg = 'bg-warning text-dark';
+                                                                                    }
+                                                                                    
+                                                                                    $tooltipTitle = "Slot #{$slotNum}<br>Status: <strong>" . ucfirst($st) . "</strong>";
+                                                                                    if ($nama) {
+                                                                                        $tooltipTitle .= "<br>Calon Penghuni: <strong>" . htmlspecialchars($nama) . "</strong> (" . htmlspecialchars($nis) . ")";
+                                                                                    }
+                                                                                @endphp
+                                                                                <div class="d-flex align-items-center justify-content-center rounded text-center slot-preview-badge {{ $squareBg }}"
+                                                                                     style="width: 28px; height: 28px; font-size: 9px; cursor: help; font-weight: bold; transition: all 0.2s; border-radius: 4px;"
+                                                                                     data-bs-toggle="tooltip" 
+                                                                                     data-bs-html="true" 
+                                                                                     title="{{ $tooltipTitle }}">
+                                                                                    <span>#{{ $slotNum }}</span>
+                                                                                </div>
+                                                                            @endforeach
+                                                                        </div>
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
+                                                        @else
+                                                            <div class="text-muted text-xs style-italic mt-1"><i class="fas fa-info-circle me-1"></i>Tidak ada data lemari.</div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
             </div>
         @endif
 
@@ -276,6 +448,25 @@
     /* CSS Utility Variables */
     .page-inner {
         padding-top: 15px !important;
+    }
+    
+    /* Custom Accordion Styling */
+    .accordion-custom .accordion-item {
+        border-radius: 8px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025) !important;
+    }
+    .accordion-custom .accordion-button:not(.collapsed) {
+        color: #1e293b;
+        background-color: #f8fafc;
+        border-bottom: 1px solid #f1f5f9;
+        box-shadow: none;
+    }
+    .accordion-custom .accordion-button:not(.collapsed)::after {
+        transform: rotate(-180deg);
+    }
+    .accordion-custom .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(21, 114, 232, 0.2);
     }
     
     .max-w-5xl {
@@ -407,6 +598,12 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
         // Initialize DataTables
         var table = $('#previewTable').DataTable({ 
             "ordering": false,

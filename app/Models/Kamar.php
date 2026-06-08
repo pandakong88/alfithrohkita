@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Domains\Shared\Traits\BelongsToTenant;
 use App\Models\Lemari;
 use Illuminate\Database\Eloquent\Model;
 
 class Kamar extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'pondok_id',
         'komplek_id',

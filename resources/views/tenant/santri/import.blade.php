@@ -99,8 +99,20 @@
                             <tbody>
                                 <tr>
                                     <td class="ps-4 py-3 font-monospace text-primary fw-bold">nis</td>
-                                    <td><span class="badge badge-success-light text-success fw-bold px-3">YA</span></td>
-                                    <td class="pe-4 text-dark small">Nomor induk santri</td>
+                                    <td>
+                                        @if(auth()->user()->pondok->nis_auto_generate)
+                                            <span class="badge badge-light-dark text-muted fw-bold px-3">OPSIONAL</span>
+                                        @else
+                                            <span class="badge badge-success-light text-success fw-bold px-3">YA</span>
+                                        @endif
+                                    </td>
+                                    <td class="pe-4 text-dark small">
+                                        @if(auth()->user()->pondok->nis_auto_generate)
+                                            Nomor induk santri (Kosongkan jika ingin dibuat otomatis)
+                                        @else
+                                            Nomor induk santri
+                                        @endif
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td class="ps-4 py-3 font-monospace text-primary fw-bold">nama_lengkap</td>

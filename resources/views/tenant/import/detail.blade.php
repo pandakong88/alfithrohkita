@@ -42,6 +42,31 @@
             </div>
         </div>
 
+        @if($batch->status === 'processing')
+            <div class="card card-round border-0 shadow-sm mb-4 bg-light-soft text-primary" id="processingPanel">
+                <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center">
+                    <div class="spinner-border text-primary mb-3" style="width: 2.5rem; height: 2.5rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Sedang Memproses Kompilasi Data</h5>
+                    <p class="text-muted small mb-3">Harap tidak menutup atau berpindah dari halaman ini hingga sinkronisasi data selesai.</p>
+                    
+                    @php
+                        $percent = $batch->total_rows > 0 ? ($batch->processed_rows / $batch->total_rows) * 100 : 0;
+                    @endphp
+                    <div class="w-100 max-w-md" style="max-width: 500px;">
+                        <div class="d-flex justify-content-between mb-1 text-primary fw-bold small">
+                            <span id="detailProcessedText">{{ $batch->processed_rows }} / {{ $batch->total_rows }} baris selesai</span>
+                            <span id="detailProcessedPercent">{{ round($percent) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px; border-radius: 10px; background: #eee;">
+                            <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" id="detailProgressBar" role="progressbar" style="width: {{ $percent }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="row g-4">
             {{-- SUMMARY CARDS --}}
             <div class="col-md-4">
@@ -57,6 +82,7 @@
                                     $statusClasses = [
                                         'committed' => 'badge-status-committed',
                                         'preview' => 'badge-status-preview',
+                                        'processing' => 'badge-status-processing',
                                         'failed' => 'badge-status-failed',
                                         'rolled_back' => 'badge-status-rolledback',
                                     ];
@@ -144,6 +170,182 @@
                 </div>
             </div>
 
+            @if(!empty($dormStructure))
+            {{-- VISUALISASI STRUKTUR ASRAMA --}}
+            <div class="col-12">
+                <div class="card card-round border-0 shadow-sm mb-0">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="fw-bold mb-0 text-dark" style="font-size: 14px;">
+                            <i class="fas fa-sitemap me-2 text-success"></i>Visualisasi Struktur Asrama (Deteksi Excel)
+                        </h5>
+                        <p class="text-muted text-xs mb-0 mt-1">Hierarki komplek, kamar, lemari, dan slot yang terdeteksi di dalam berkas Excel yang diunggah.</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="accordion accordion-custom" id="dormAccordion">
+                            @foreach($dormStructure as $komplekNama => $kamars)
+                                @php
+                                    $isFirst = $loop->first;
+                                    $komplekId = 'komplek_' . Str::slug($komplekNama);
+                                    $totalRooms = count($kamars);
+                                    $totalSlots = 0;
+                                    $occupiedSlots = 0;
+                                    foreach ($kamars as $kamarData) {
+                                        if (!empty($kamarData['lemaris'])) {
+                                            foreach ($kamarData['lemaris'] as $lemariData) {
+                                                $dipakai = $lemariData['slots']['dipakai'] ?? 0;
+                                                $kosong = $lemariData['slots']['kosong'] ?? 0;
+                                                $rusak = $lemariData['slots']['rusak'] ?? 0;
+                                                $barang = $lemariData['slots']['barang'] ?? 0;
+                                                $totalSlots += ($dipakai + $kosong + $rusak + $barang);
+                                                $occupiedSlots += $dipakai;
+                                            }
+                                        }
+                                    }
+                                @endphp
+                                <div class="accordion-item border-0 mb-3 rounded-3 overflow-hidden" style="border: 1px solid #e2e8f0 !important; border-radius: 8px;">
+                                    <h2 class="accordion-header" id="heading_{{ $komplekId }}">
+                                        <button class="accordion-button {{ $isFirst ? '' : 'collapsed' }} py-3 px-4 fw-bold text-dark d-flex align-items-center gap-3" 
+                                                type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#collapse_{{ $komplekId }}" 
+                                                aria-expanded="{{ $isFirst ? 'true' : 'false' }}" 
+                                                aria-controls="collapse_{{ $komplekId }}"
+                                                style="background: #f8fafc; box-shadow: none; border-radius: 8px;">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="fas fa-building text-primary me-1 fa-lg"></i>
+                                                <span>{{ $komplekNama }}</span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2 ms-auto me-3">
+                                                <span class="badge bg-primary-soft text-primary rounded-pill font-size-11 px-2.5">
+                                                    {{ $totalRooms }} Kamar
+                                                </span>
+                                                <span class="badge bg-success-soft text-success rounded-pill font-size-11 px-2.5">
+                                                    {{ $occupiedSlots }}/{{ $totalSlots }} Slot Terpakai
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse_{{ $komplekId }}" 
+                                         class="accordion-collapse collapse {{ $isFirst ? 'show' : '' }}" 
+                                         aria-labelledby="heading_{{ $komplekId }}" 
+                                         data-bs-parent="#dormAccordion">
+                                        <div class="accordion-body p-4 bg-white">
+                                            <div class="row g-3">
+                                                @foreach($kamars as $kamarNama => $kamarData)
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="p-3 rounded-3 border bg-white shadow-xs h-100" style="border-radius: 8px; border: 1px solid #f1f5f9 !important;">
+                                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                <span class="fw-bold text-dark text-xs">
+                                                                    <i class="fas fa-door-open text-warning me-1.5"></i>{{ $kamarNama }}
+                                                                </span>
+                                                                @if($kamarData['kapasitas'])
+                                                                    <span class="text-muted text-xs" style="font-size: 10.5px;">Kaps: <strong>{{ $kamarData['kapasitas'] }} Orang</strong></span>
+                                                                @endif
+                                                            </div>
+                                                            
+                                                            @if(!empty($kamarData['lemaris']))
+                                                                <div class="d-flex flex-column gap-2 mt-2">
+                                                                    @foreach($kamarData['lemaris'] as $lemariNama => $lemariData)
+                                                                        @php
+                                                                            $dipakai = $lemariData['slots']['dipakai'] ?? 0;
+                                                                            $kosong = $lemariData['slots']['kosong'] ?? 0;
+                                                                            $rusak = $lemariData['slots']['rusak'] ?? 0;
+                                                                            $barang = $lemariData['slots']['barang'] ?? 0;
+                                                                            $total = $dipakai + $kosong + $rusak + $barang;
+                                                                        @endphp
+                                                                        <div class="p-2.5 rounded-2 border-0" style="font-size: 11px; background: #f8fafc; border-radius: 6px;">
+                                                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                                <span class="text-dark font-weight-600">
+                                                                                    <i class="fas fa-box text-muted me-1.5"></i>{{ $lemariNama }}
+                                                                                    <span class="text-muted fw-normal" style="font-size: 10px;">({{ ucfirst(str_replace('_', ' ', $lemariData['tipe'])) }})</span>
+                                                                                </span>
+                                                                                <span class="text-slate font-weight-500" style="font-size: 10px;">{{ $dipakai }}/{{ $total }} Slot</span>
+                                                                            </div>
+                                                                            
+                                                                            {{-- Multi-colored progress bar for slots --}}
+                                                                            <div class="progress mb-1.5" style="height: 6px; border-radius: 3px; background-color: #e2e8f0; display: flex;">
+                                                                                @if($total > 0)
+                                                                                    @if($dipakai > 0)
+                                                                                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ ($dipakai / $total) * 100 }}%" title="{{ $dipakai }} Dipakai"></div>
+                                                                                    @endif
+                                                                                    @if($barang > 0)
+                                                                                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ ($barang / $total) * 100 }}%" title="{{ $barang }} Barang"></div>
+                                                                                    @endif
+                                                                                    @if($rusak > 0)
+                                                                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ ($rusak / $total) * 100 }}%" title="{{ $rusak }} Rusak"></div>
+                                                                                    @endif
+                                                                                    @if($kosong > 0)
+                                                                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ ($kosong / $total) * 100 }}%" title="{{ $kosong }} Kosong"></div>
+                                                                                    @endif
+                                                                                @endif
+                                                                            </div>
+                                                                            
+                                                                            <div class="d-flex flex-wrap gap-2 text-xs text-muted mt-1.5" style="font-size: 9px;">
+                                                                                @if($kosong > 0)
+                                                                                    <span><i class="fas fa-circle text-success me-1"></i>{{ $kosong }} Ksg</span>
+                                                                                @endif
+                                                                                @if($dipakai > 0)
+                                                                                    <span><i class="fas fa-circle text-primary me-1"></i>{{ $dipakai }} Tpk</span>
+                                                                                @endif
+                                                                                @if($barang > 0)
+                                                                                    <span><i class="fas fa-circle text-warning me-1"></i>{{ $barang }} Brg</span>
+                                                                                @endif
+                                                                                @if($rusak > 0)
+                                                                                    <span><i class="fas fa-circle text-danger me-1"></i>{{ $rusak }} Rsk</span>
+                                                                                @endif
+                                                                            </div>
+ 
+                                                                            {{-- Mini Slot Grid --}}
+                                                                            <div class="d-flex flex-wrap gap-1 mt-2.5 pt-2 border-top border-light-subtle">
+                                                                                @foreach($lemariData['slots']['details'] as $slotNum => $slotDetail)
+                                                                                    @php
+                                                                                        $st = $slotDetail['status'];
+                                                                                        $nama = $slotDetail['santri_nama'];
+                                                                                        $nis = $slotDetail['santri_nis'];
+                                                                                        
+                                                                                        $squareBg = 'bg-success text-white'; // Kosong
+                                                                                        if ($st === 'dipakai') {
+                                                                                            $squareBg = 'bg-primary text-white';
+                                                                                        } elseif ($st === 'rusak') {
+                                                                                            $squareBg = 'bg-danger text-white';
+                                                                                        } elseif ($st === 'barang') {
+                                                                                            $squareBg = 'bg-warning text-dark';
+                                                                                        }
+                                                                                        
+                                                                                        $tooltipTitle = "Slot #{$slotNum}<br>Status: <strong>" . ucfirst($st) . "</strong>";
+                                                                                        if ($nama) {
+                                                                                            $tooltipTitle .= "<br>Penghuni: <strong>" . htmlspecialchars($nama) . "</strong> (" . htmlspecialchars($nis) . ")";
+                                                                                        }
+                                                                                    @endphp
+                                                                                    <div class="d-flex align-items-center justify-content-center rounded text-center slot-preview-badge {{ $squareBg }}"
+                                                                                         style="width: 28px; height: 28px; font-size: 9px; cursor: help; font-weight: bold; transition: all 0.2s; border-radius: 4px;"
+                                                                                         data-bs-toggle="tooltip" 
+                                                                                         data-bs-html="true" 
+                                                                                         title="{{ $tooltipTitle }}">
+                                                                                        <span>#{{ $slotNum }}</span>
+                                                                                    </div>
+                                                                                @endforeach
+                                                                            </div>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            @else
+                                                                <div class="text-muted text-xs style-italic mt-1"><i class="fas fa-info-circle me-1"></i>Tidak ada data lemari.</div>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             {{-- ROWS DETAIL --}}
             <div class="col-12 mt-4">
                 <div class="card card-round border-0 shadow-sm overflow-hidden">
@@ -228,7 +430,55 @@
 <style>
     .bg-soft-danger { background-color: rgba(220, 53, 69, 0.03) !important; }
     .card-round { border-radius: 12px !important; }
+    
+    /* Custom Accordion Styling */
+    .accordion-custom .accordion-item {
+        border-radius: 8px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025) !important;
+    }
+    .accordion-custom .accordion-button:not(.collapsed) {
+        color: #1e293b;
+        background-color: #f8fafc;
+        border-bottom: 1px solid #f1f5f9;
+        box-shadow: none;
+    }
+    .accordion-custom .accordion-button:not(.collapsed)::after {
+        transform: rotate(-180deg);
+    }
+    .accordion-custom .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(21, 114, 232, 0.2);
+    }
+    
     pre { white-space: pre-wrap; word-wrap: break-word; }
+    
+    /* Soft colors utility */
+    .bg-success-soft {
+        background-color: #ecfdf5 !important;
+        color: #059669 !important;
+        border: 1px solid #a7f3d0 !important;
+    }
+    .bg-primary-soft {
+        background-color: #eff6ff !important;
+        color: #2563eb !important;
+        border: 1px solid #bfdbfe !important;
+    }
+    .bg-warning-soft {
+        background-color: #fffbeb !important;
+        color: #d97706 !important;
+        border: 1px solid #fde68a !important;
+    }
+    .bg-danger-soft {
+        background-color: #fef2f2 !important;
+        color: #dc2626 !important;
+        border: 1px solid #fecaca !important;
+    }
+    .text-slate { color: #64748b; }
+    .text-xs { font-size: 0.75rem; }
+    .text-sm { font-size: 0.875rem; }
+    .font-size-11 { font-size: 11px; }
+    .mb-1.5 { margin-bottom: 0.375rem; }
+    .mt-2.5 { margin-top: 0.625rem; }
     
     #rowsTable thead th {
         background-color: #f8fafc !important;
@@ -250,6 +500,7 @@
     .badge-status-preview { background-color: #fffbeb; color: #b78103; border: 1px solid #ffeeba; }
     .badge-status-failed { background-color: #fdf2f2; color: #dc3545; border: 1px solid #f5c6cb; }
     .badge-status-rolledback { background-color: #f8f9fa; color: #6c757d; border: 1px solid #e2e3e5; }
+    .badge-status-processing { background-color: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
     
     .badge-primary-light {
         background-color: #e1f0ff !important;
@@ -297,10 +548,44 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
         $('#rowsTable').DataTable({
             "pageLength": 5,
             "dom": '<"p-3 d-flex justify-content-between"lf>rt<"p-3 d-flex justify-content-between"ip>'
         });
+
+        @if($batch->status === 'processing')
+        var batchId = "{{ $batch->id }}";
+        var interval = setInterval(function() {
+            $.ajax({
+                url: "{{ route('tenant.import.status', ':id') }}".replace(':id', batchId),
+                method: 'GET',
+                success: function(response) {
+                    var total = response.total_rows;
+                    var processed = response.processed_rows;
+                    var status = response.status;
+                    var percent = total > 0 ? (processed / total) * 100 : 0;
+                    
+                    $('#detailProcessedText').text(processed + ' / ' + total + ' baris selesai');
+                    $('#detailProcessedPercent').text(Math.round(percent) + '%');
+                    $('#detailProgressBar').css('width', percent + '%');
+                    
+                    if (status !== 'processing') {
+                        clearInterval(interval);
+                        location.reload();
+                    }
+                },
+                error: function() {
+                    // Ignore temporary network errors
+                }
+            });
+        }, 1500);
+        @endif
     });
 
     function viewPayload(json) {

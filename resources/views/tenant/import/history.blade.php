@@ -113,21 +113,34 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style="min-width: 180px;">
-                                            <div class="d-flex justify-content-between mb-1" style="font-size: 11px;">
-                                                <span class="text-success fw-bold">{{ $batch->valid_rows }} Sukses</span>
-                                                <span class="text-danger fw-bold">{{ $batch->invalid_rows }} Gagal</span>
-                                            </div>
-                                            <div class="progress" style="height: 6px; border-radius: 10px; background: #eee;">
-                                                @php 
-                                                    $percent = $batch->total_rows > 0 ? ($batch->valid_rows / $batch->total_rows) * 100 : 0;
+                                        <td style="min-width: 180px;" class="progress-container" data-batch-id="{{ $batch->id }}" data-status="{{ $batch->status }}">
+                                            @if($batch->status === 'processing')
+                                                @php
+                                                    $percent = $batch->total_rows > 0 ? ($batch->processed_rows / $batch->total_rows) * 100 : 0;
                                                 @endphp
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ $percent }}%"></div>
-                                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ 100 - $percent }}%"></div>
-                                            </div>
-                                            <small class="text-center d-block mt-1 text-muted" style="font-size: 10px;">Total: {{ $batch->total_rows }} Baris</small>
+                                                <div class="d-flex justify-content-between mb-1 text-primary fw-bold" style="font-size: 11px;">
+                                                    <span class="processed-count">{{ $batch->processed_rows }} / {{ $batch->total_rows }} baris</span>
+                                                    <span class="processed-percent">{{ round($percent) }}%</span>
+                                                </div>
+                                                <div class="progress" style="height: 6px; border-radius: 10px; background: #eee;">
+                                                    <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ $percent }}%"></div>
+                                                </div>
+                                            @else
+                                                <div class="d-flex justify-content-between mb-1" style="font-size: 11px;">
+                                                    <span class="text-success fw-bold">{{ $batch->valid_rows }} Sukses</span>
+                                                    <span class="text-danger fw-bold">{{ $batch->invalid_rows }} Gagal</span>
+                                                </div>
+                                                <div class="progress" style="height: 6px; border-radius: 10px; background: #eee;">
+                                                    @php 
+                                                        $percent = $batch->total_rows > 0 ? ($batch->valid_rows / $batch->total_rows) * 100 : 0;
+                                                    @endphp
+                                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ $percent }}%"></div>
+                                                    <div class="progress-bar bg-danger" role="progressbar" style="width: {{ 100 - $percent }}%"></div>
+                                                </div>
+                                                <small class="text-center d-block mt-1 text-muted" style="font-size: 10px;">Total: {{ $batch->total_rows }} Baris</small>
+                                            @endif
                                         </td>
-                                        <td class="text-center">
+                                        <td class="status-cell text-center">
                                             @if($batch->status === 'committed')
                                                 <span class="badge badge-status-committed px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
                                                     <i class="fas fa-check-double me-1"></i> SELESAI
@@ -135,6 +148,10 @@
                                             @elseif($batch->status === 'preview')
                                                 <span class="badge badge-status-preview px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
                                                     <i class="fas fa-eye me-1"></i> PREVIEW
+                                                </span>
+                                            @elseif($batch->status === 'processing')
+                                                <span class="badge badge-status-processing px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
+                                                    <i class="fas fa-spinner fa-spin me-1"></i> PROSES...
                                                 </span>
                                             @elseif($batch->status === 'failed')
                                                 <span class="badge badge-status-failed px-3 py-1.5 rounded-pill" style="font-size: 10px; font-weight: bold;">
@@ -231,6 +248,7 @@
     .badge-status-preview { background-color: #fffbeb; color: #b78103; border: 1px solid #ffeeba; }
     .badge-status-failed { background-color: #fdf2f2; color: #dc3545; border: 1px solid #f5c6cb; }
     .badge-status-rolledback { background-color: #f8f9fa; color: #6c757d; border: 1px solid #e2e3e5; }
+    .badge-status-processing { background-color: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
 </style>
 @endsection
 
@@ -254,6 +272,54 @@
         });
         
         $('[data-bs-toggle="tooltip"]').tooltip();
+
+        // Polling status untuk batch yang sedang diproses
+        var processingBatches = $('.progress-container[data-status="processing"]');
+        if (processingBatches.length > 0) {
+            var interval = setInterval(function() {
+                var activePolls = 0;
+                
+                processingBatches.each(function() {
+                    var container = $(this);
+                    var batchId = container.data('batch-id');
+                    var statusTd = container.siblings('.status-cell');
+                    
+                    if (container.attr('data-status') !== 'processing') {
+                        return;
+                    }
+                    
+                    activePolls++;
+                    
+                    $.ajax({
+                        url: "{{ route('tenant.import.status', ':id') }}".replace(':id', batchId),
+                        method: 'GET',
+                        success: function(response) {
+                            var total = response.total_rows;
+                            var processed = response.processed_rows;
+                            var status = response.status;
+                            var percent = total > 0 ? (processed / total) * 100 : 0;
+                            
+                            container.find('.processed-count').text(processed + ' / ' + total + ' baris');
+                            container.find('.processed-percent').text(Math.round(percent) + '%');
+                            container.find('.progress-bar').css('width', percent + '%');
+                            
+                            if (status !== 'processing') {
+                                container.attr('data-status', status);
+                                // Refresh halaman jika proses selesai
+                                location.reload();
+                            }
+                        },
+                        error: function() {
+                            // Abaikan error jaringan sementara
+                        }
+                    });
+                });
+                
+                if (activePolls === 0) {
+                    clearInterval(interval);
+                }
+            }, 2000);
+        }
     });
 </script>
 @endpush

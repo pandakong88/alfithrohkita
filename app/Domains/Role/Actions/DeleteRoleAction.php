@@ -13,6 +13,10 @@ class DeleteRoleAction
             abort(403);
         }
 
+        if ($role->pondok_id !== auth()->user()->pondok_id) {
+            abort(403);
+        }
+
         $role->delete();
     }
 }

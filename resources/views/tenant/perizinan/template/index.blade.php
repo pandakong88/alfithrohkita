@@ -14,11 +14,13 @@
                 </h2>
                 <p class="text-muted fw-medium">Kelola format surat izin santri dengan mapping variabel otomatis.</p>
             </div>
+            @can('manage_perizinan')
             <div class="mt-3 mt-md-0">
                 <a href="{{ route('tenant.template-perizinan.upload') }}" class="btn btn-primary btn-round px-4 shadow">
                     <i class="fas fa-plus-circle me-2"></i> Tambah Template
                 </a>
             </div>
+            @endcan
         </div>
 
         {{-- TABLE CARD --}}
@@ -83,9 +85,10 @@
                                         <input class="form-check-input status-toggle" 
                                                type="checkbox" 
                                                role="switch" 
-                                               style="cursor: pointer; width: 40px; height: 20px; margin-left: 0;"
+                                               style="@can('manage_perizinan') cursor: pointer; @else cursor: not-allowed; @endcan width: 40px; height: 20px; margin-left: 0;"
                                                data-id="{{ $template->id }}"
-                                               {{ $template->is_active ? 'checked' : '' }}>
+                                               {{ $template->is_active ? 'checked' : '' }}
+                                               @cannot('manage_perizinan') disabled @endcannot>
                                     </div>
                                     <small id="status-label-{{ $template->id }}" class="text-muted mt-1 d-block" style="font-size: 10px;">
                                         {{ $template->is_active ? 'Aktif' : 'Nonaktif' }}
@@ -98,6 +101,7 @@
                                                 title="Detail Pratinjau">
                                             <i class="fa fa-eye"></i>
                                         </button>
+                                        @can('manage_perizinan')
                                         <a href="{{ route('tenant.template-perizinan.edit', $template->id) }}" 
                                            class="btn btn-icon btn-link btn-primary" title="Ubah">
                                             <i class="fa fa-edit"></i>
@@ -109,6 +113,7 @@
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>
@@ -172,9 +177,11 @@
                     <i class="fas fa-print me-2"></i>Cetak Template
                 </button>
             
+                @can('manage_perizinan')
                 <a href="#" id="modalEditBtn" class="btn btn-primary btn-round px-4 fw-bold">
                     <i class="fas fa-edit me-2"></i>Edit Struktur
                 </a>
+                @endcan
             </div>
         </div>
     </div>

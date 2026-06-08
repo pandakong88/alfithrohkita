@@ -6,6 +6,7 @@
             'fields' => $t->fields->map(function($f) {
                 return [
                     'label' => $f->label,
+                    'field_key' => $f->field_key,
                     'is_required' => (bool)$f->is_required,
                     'entity' => $f->entity,
                 ];
@@ -117,12 +118,12 @@
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item py-2" id="download-data-btn" href="#">
-                                                        <i class="fas fa-database text-primary me-2" style="width: 16px;"></i> 
-                                                        <strong>Template + Data Santri</strong>
-                                                        <small class="text-muted d-block mt-0.5">Untuk pembaruan data lama massal</small>
-                                                    </a>
-                                                </li>
+                                                     <a class="dropdown-item py-2" id="download-data-btn" href="javascript:void(0)">
+                                                         <i class="fas fa-database text-primary me-2" style="width: 16px;"></i> 
+                                                         <strong>Template + Data Santri</strong>
+                                                         <small class="text-muted d-block mt-0.5">Untuk pembaruan data lama massal</small>
+                                                     </a>
+                                                 </li>
                                             </ul>
                                         </div>
                                     </div>
@@ -157,6 +158,29 @@
                                     <button type="button" id="clear-file-btn" class="btn btn-xs btn-danger btn-round shadow-sm position-absolute d-none" style="top: 15px; right: 15px; z-index: 20; padding: 4px 10px;">
                                         <i class="fas fa-times me-1"></i> Bersihkan File
                                     </button>
+                                </div>
+
+                                {{-- Validation Feedback Card --}}
+                                <div id="validation-feedback-card" class="mt-3 d-none">
+                                    <div class="card card-round border shadow-sm mb-0" id="feedback-card-inner" style="border-radius: 12px;">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex align-items-start gap-3" style="gap: 12px;">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center p-2" id="feedback-icon-container" style="width: 38px; height: 38px; min-width: 38px;">
+                                                    <i class="fas fa-check-circle fa-lg" id="feedback-icon"></i>
+                                                </div>
+                                                <div class="flex-fill" style="min-width: 0;">
+                                                    <h6 class="fw-bold text-dark mb-1" id="feedback-title" style="font-size: 13.5px;">Validasi Berhasil</h6>
+                                                    <p class="text-muted mb-0 small" id="feedback-message" style="font-size: 11.5px; line-height: 1.4;">Struktur kolom sesuai dengan template.</p>
+                                                    
+                                                    <div id="feedback-errors-section" class="mt-2 d-none">
+                                                        <span class="text-danger fw-semibold d-block text-xs mb-1"><i class="fas fa-exclamation-triangle me-1"></i> Detail Kesalahan:</span>
+                                                        <ul class="text-danger mb-0 text-xs" id="feedback-errors-list" style="line-height: 1.5; padding-left: 1.2rem;">
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -445,14 +469,122 @@
     .fs-8 { font-size: 0.72rem; }
     .me-1.5 { margin-right: 0.375rem; }
     .mt-2.5 { margin-top: 0.625rem; }
+
+    .bg-soft-success { background-color: rgba(40, 167, 69, 0.08) !important; }
+    .bg-soft-danger { background-color: rgba(220, 53, 69, 0.08) !important; }
+    .border-soft-success { border-color: #a7f3d0 !important; }
+    .border-soft-danger { border-color: #fecaca !important; }
+    .bg-soft-success-light { background-color: #f6ffed !important; }
+    .bg-soft-danger-light { background-color: #fff2f0 !important; }
 </style>
+
+{{-- MODAL DOWNLOAD FILTER --}}
+<div class="modal fade" id="downloadFilterModal" tabindex="-1" aria-labelledby="downloadFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+            <div class="modal-header border-0 text-white py-3 px-4" style="border-top-left-radius: 15px; border-top-right-radius: 15px; background: linear-gradient(135deg, #1d7af3 0%, #1572e8 100%);">
+                <h5 class="modal-title fw-bold" id="downloadFilterModalLabel">
+                    <i class="fas fa-file-excel me-2"></i> Pengaturan Unduhan Data
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="downloadFilterForm" method="GET" action="">
+                <input type="hidden" name="with_data" value="true">
+                <div class="modal-body p-4" style="font-size: 13px;">
+                    <p class="text-muted mb-3">Sesuaikan opsi filter dan nama file di bawah ini. Kosongkan filter jika ingin mengunduh seluruh data santri.</p>
+                    
+                    {{-- Nama Berkas --}}
+                    <div class="form-group mb-3 px-0">
+                        <label for="custom_filename" class="form-label fw-bold text-dark mb-1">Nama File Hasil Unduhan</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0 text-success"><i class="fas fa-file-alt"></i></span>
+                            <input type="text" class="form-control border-start-0" id="custom_filename" name="filename" placeholder="Contoh: Sensus_Santri_Komplek_A" style="font-size: 13px;">
+                            <span class="input-group-text bg-light border-start-0 text-muted">.xlsx</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">Nama file akan dibersihkan dari karakter ilegal.</small>
+                    </div>
+
+                    <div class="row">
+                        {{-- Komplek --}}
+                        <div class="col-md-6 mb-3">
+                            <label for="filter_komplek" class="form-label fw-bold text-dark mb-1">Komplek</label>
+                            <select class="form-select form-control" id="filter_komplek" name="komplek_id" style="font-size: 13px;">
+                                <option value="">-- Semua Komplek --</option>
+                                @foreach($kompleks as $komplek)
+                                    <option value="{{ $komplek->id }}">{{ $komplek->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Kamar --}}
+                        <div class="col-md-6 mb-3">
+                            <label for="filter_kamar" class="form-label fw-bold text-dark mb-1">Kamar</label>
+                            <select class="form-select form-control" id="filter_kamar" name="kamar_id" style="font-size: 13px;">
+                                <option value="">-- Semua Kamar --</option>
+                                @foreach($kamars as $kamar)
+                                    <option value="{{ $kamar->id }}" data-komplek-id="{{ $kamar->komplek_id }}">{{ $kamar->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        {{-- Kelas --}}
+                        <div class="col-md-6 mb-3">
+                            <label for="filter_kelas" class="form-label fw-bold text-dark mb-1">Kelas</label>
+                            <select class="form-select form-control" id="filter_kelas" name="kelas_id" style="font-size: 13px;">
+                                <option value="">-- Semua Kelas --</option>
+                                @foreach($kelas as $kls)
+                                    <option value="{{ $kls->id }}">{{ $kls->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Jenis Kelamin --}}
+                        <div class="col-md-6 mb-3">
+                            <label for="filter_jk" class="form-label fw-bold text-dark mb-1">Jenis Kelamin</label>
+                            <select class="form-select form-control" id="filter_jk" name="jenis_kelamin" style="font-size: 13px;">
+                                <option value="">-- Semua Gender --</option>
+                                <option value="L">Laki-laki (L)</option>
+                                <option value="P">Perempuan (P)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Status --}}
+                    <div class="form-group mb-0 px-0">
+                        <label for="filter_status" class="form-label fw-bold text-dark mb-1">Status Keaktifan</label>
+                        <select class="form-select form-control" id="filter_status" name="status" style="font-size: 13px;">
+                            <option value="">-- Semua Status --</option>
+                            <option value="active">Active</option>
+                            <option value="nonaktif">Nonaktif</option>
+                            <option value="lulus">Lulus</option>
+                            <option value="keluar">Keluar</option>
+                            <option value="izin">Izin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light border btn-round btn-sm" data-bs-dismiss="modal" style="font-size: 12px; padding: 6px 16px;">Batal</button>
+                    <button type="submit" class="btn btn-success btn-round btn-sm" style="font-size: 12px; padding: 6px 16px;">
+                        <i class="fas fa-download me-1"></i> Download Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
+<!-- SheetJS Library for Client-Side Excel Parsing -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
     $(document).ready(function() {
         // Eager serialized templates data
         const templates = {!! $templatesJson !!};
+        const nisAutoGenerate = {{ auth()->user()->pondok->nis_auto_generate ? 'true' : 'false' }};
+        var currentFile = null;
 
         // Initialize Select2 dropdown
         $('.select2-standard').select2({ 
@@ -463,6 +595,9 @@
         // Template change listener
         $('#template-select').on('change', function() {
             updateTemplateDetails($(this).val());
+            if (currentFile) {
+                validateExcel(currentFile);
+            }
         });
 
         // Initialize with default template details
@@ -485,7 +620,11 @@
             const downloadBaseUrl = "{{ route('tenant.import-templates.download', ':id') }}";
             const downloadUrl = downloadBaseUrl.replace(':id', templateId);
             $('#download-blank-btn').attr('href', downloadUrl + '?with_data=false');
-            $('#download-data-btn').attr('href', downloadUrl + '?with_data=true');
+
+            // Simpan attribute data-template untuk memicu modal filter
+            $('#download-data-btn')
+                .attr('data-template-id', templateId)
+                .attr('data-template-name', template.nama_template);
 
             // Generate field badges
             const requiredFields = [];
@@ -579,6 +718,9 @@
             fileInfoDisplay.classList.remove('d-none');
             clearFileBtn.classList.remove('d-none');
             uploadIcon.className = "fas fa-file-excel text-success fa-4x pulse-animation";
+
+            currentFile = file;
+            validateExcel(file);
         }
 
         function clearFile() {
@@ -587,6 +729,9 @@
             fileInfoDisplay.classList.add('d-none');
             clearFileBtn.classList.add('d-none');
             uploadIcon.className = "fas fa-file-excel text-primary fa-4x opacity-50";
+            
+            currentFile = null;
+            resetValidationUI();
         }
 
         // Click clear button
@@ -600,10 +745,292 @@
 
         // Form Submit spinner
         const form = document.querySelector('form');
-        form.addEventListener('submit', () => {
+        form.addEventListener('submit', (e) => {
             const btn = form.querySelector('button[type="submit"]');
+            if (btn.disabled) {
+                e.preventDefault();
+                return false;
+            }
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> MEMPROSES BERKAS...`;
+        });
+
+        // ==========================================
+        // CLIENT-SIDE EXCEL VALIDATION LOGIC
+        // ==========================================
+        function validateExcel(file) {
+            var templateId = $('#template-select').val();
+            var template = templates[templateId];
+            if (!template) return;
+
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var data = new Uint8Array(e.target.result);
+                    var workbook = XLSX.read(data, {type: 'array', sheetRows: 1}); // Read only first row
+                    if (workbook.SheetNames.length === 0) {
+                        showValidationError(["Berkas Excel kosong atau tidak terbaca."]);
+                        return;
+                    }
+                    
+                    // Find target sheet (Data or first sheet that isn't Lookups)
+                    var targetSheetName = workbook.SheetNames[0];
+                    for (var i = 0; i < workbook.SheetNames.length; i++) {
+                        var name = workbook.SheetNames[i];
+                        if (name.toLowerCase().trim() === 'data') {
+                            targetSheetName = name;
+                            break;
+                        }
+                    }
+                    if (targetSheetName.toLowerCase().trim() === 'lookups' || targetSheetName.toLowerCase().trim() === 'lookup') {
+                        for (var i = 0; i < workbook.SheetNames.length; i++) {
+                            var name = workbook.SheetNames[i];
+                            if (name.toLowerCase().trim() !== 'lookups' && name.toLowerCase().trim() !== 'lookup') {
+                                targetSheetName = name;
+                                break;
+                            }
+                        }
+                    }
+
+                    var worksheet = workbook.Sheets[targetSheetName];
+                    if (!worksheet || !worksheet['!ref']) {
+                        showValidationError(["Lembar '" + targetSheetName + "' kosong."]);
+                        return;
+                    }
+
+                    // Extract headers
+                    var range = XLSX.utils.decode_range(worksheet['!ref']);
+                    var headers = [];
+                    var R = range.s.r; // First row
+                    for (var C = range.s.c; C <= range.e.c; ++C) {
+                        var cell = worksheet[XLSX.utils.encode_cell({c: C, r: R})];
+                        var val = "";
+                        if (cell && cell.t) {
+                            val = XLSX.utils.format_cell(cell);
+                        }
+                        headers.push(val.toString().trim());
+                    }
+
+                    // Normalize functions
+                    var normalize = function(str) {
+                        return str.toString().toLowerCase().replace(/[\*\s_\-]/g, '');
+                    };
+
+                    // Check if 2-header style (db keys on row 1, labels on row 2)
+                    var validKeys = template.fields.map(function(f) { return f.field_key.toLowerCase(); });
+                    var matchingKeysCount = 0;
+                    headers.forEach(function(h) {
+                        if (validKeys.includes(h.toLowerCase())) {
+                            matchingKeysCount++;
+                        }
+                    });
+
+                    var matchThreshold = Math.min(2, validKeys.length);
+                    var uploadedHeadersNormalized = [];
+                    
+                    if (matchingKeysCount >= matchThreshold) {
+                        uploadedHeadersNormalized = headers.map(function(h) { return normalize(h); });
+                    } else {
+                        uploadedHeadersNormalized = headers.map(function(h) { return normalize(h); });
+                    }
+
+                    var errors = [];
+                    var templateFieldsNormalized = template.fields.map(function(f) {
+                        return {
+                            labelNormalized: normalize(f.label),
+                            fieldKeyNormalized: normalize(f.field_key),
+                            is_required: f.is_required,
+                            label: f.label,
+                            field_key: f.field_key
+                        };
+                    });
+
+                    // 1. Check required fields
+                    templateFieldsNormalized.forEach(function(field) {
+                        if (field.is_required) {
+                            // Bypass NIS if nisAutoGenerate is true
+                            if (field.field_key === 'nis' && nisAutoGenerate) {
+                                return;
+                            }
+                            var isPresent = uploadedHeadersNormalized.some(function(h) {
+                                return h === field.labelNormalized || h === field.fieldKeyNormalized;
+                            });
+                            if (!isPresent) {
+                                errors.push("Kolom wajib '" + field.label + "' tidak ditemukan.");
+                            }
+                        }
+                    });
+
+                    // 2. Check Hierarchy/Dependencies
+                    var hasFieldInExcel = function(fieldKey) {
+                        var targetNorm = normalize(fieldKey);
+                        return uploadedHeadersNormalized.some(function(h) {
+                            var fMatch = templateFieldsNormalized.find(function(f) {
+                                return f.field_key === fieldKey;
+                            });
+                            if (!fMatch) return false;
+                            return h === fMatch.labelNormalized || h === fMatch.fieldKeyNormalized;
+                        });
+                    };
+
+                    // - Kamar -> Komplek
+                    if (hasFieldInExcel('kamar') && !hasFieldInExcel('komplek')) {
+                        errors.push("Kolom 'Komplek' wajib ada jika kolom 'Kamar' disertakan.");
+                    }
+                    // - Lemari -> Kamar
+                    if (hasFieldInExcel('lemari') && !hasFieldInExcel('kamar')) {
+                        errors.push("Kolom 'Kamar' wajib ada jika kolom 'Lemari' disertakan.");
+                    }
+                    // - Slot Lemari -> Lemari
+                    if (hasFieldInExcel('slot') && !hasFieldInExcel('lemari')) {
+                        errors.push("Kolom 'Lemari' wajib ada jika kolom 'Slot Lemari' disertakan.");
+                    }
+
+                    if (errors.length > 0) {
+                        showValidationError(errors);
+                    } else {
+                        showValidationSuccess();
+                    }
+
+                } catch (err) {
+                    showValidationError(["Gagal membaca struktur Excel: " + err.message]);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showValidationError(errors) {
+            // Update drop-zone borders/bg
+            $('#drop-zone').removeClass('border-soft-success bg-soft-success-light')
+                           .addClass('border-soft-danger bg-soft-danger-light');
+            
+            // Show card
+            $('#validation-feedback-card').removeClass('d-none');
+            $('#feedback-card-inner').removeClass('border-soft-success bg-soft-success-light')
+                                     .addClass('border-soft-danger bg-soft-danger-light');
+            
+            // Icon
+            $('#feedback-icon-container').removeClass('bg-soft-success text-success')
+                                         .addClass('bg-soft-danger text-danger');
+            $('#feedback-icon').removeClass('fa-check-circle').addClass('fa-times-circle');
+            
+            // Texts
+            $('#feedback-title').text('Struktur Kolom Tidak Valid').removeClass('text-success').addClass('text-danger');
+            $('#feedback-message').text('Ditemukan beberapa ketidaksesuaian kolom dengan template yang Anda pilih.');
+            
+            // List errors
+            var listHtml = '';
+            errors.forEach(function(err) {
+                listHtml += '<li>' + err + '</li>';
+            });
+            $('#feedback-errors-list').html(listHtml);
+            $('#feedback-errors-section').removeClass('d-none');
+            
+            // Submit button
+            var submitBtn = $('form button[type="submit"]');
+            submitBtn.prop('disabled', true);
+            submitBtn.attr('title', 'Perbaiki kesalahan pada file Excel sebelum melanjutkan.');
+        }
+
+        function showValidationSuccess() {
+            // Update drop-zone borders/bg
+            $('#drop-zone').removeClass('border-soft-danger bg-soft-danger-light')
+                           .addClass('border-soft-success bg-soft-success-light');
+            
+            // Show card
+            $('#validation-feedback-card').removeClass('d-none');
+            $('#feedback-card-inner').removeClass('border-soft-danger bg-soft-danger-light')
+                                     .addClass('border-soft-success bg-soft-success-light');
+            
+            // Icon
+            $('#feedback-icon-container').removeClass('bg-soft-danger text-danger')
+                                         .addClass('bg-soft-success text-success');
+            $('#feedback-icon').removeClass('fa-times-circle').addClass('fa-check-circle');
+            
+            // Texts
+            $('#feedback-title').text('Struktur Kolom Sesuai').removeClass('text-danger').addClass('text-success');
+            var templateName = $('#template-select option:selected').text().trim();
+            $('#feedback-message').text('Berkas siap! Struktur kolom sesuai dengan template "' + templateName + '".');
+            
+            // Clear errors
+            $('#feedback-errors-section').addClass('d-none');
+            $('#feedback-errors-list').html('');
+            
+            // Submit button
+            var submitBtn = $('form button[type="submit"]');
+            submitBtn.prop('disabled', false);
+            submitBtn.removeAttr('title');
+        }
+
+        function resetValidationUI() {
+            // Reset drop-zone
+            $('#drop-zone').removeClass('border-soft-success bg-soft-success-light border-soft-danger bg-soft-danger-light');
+            
+            // Hide card
+            $('#validation-feedback-card').addClass('d-none');
+            $('#feedback-card-inner').removeClass('border-soft-success bg-soft-success-light border-soft-danger bg-soft-danger-light');
+            
+            // Clear list
+            $('#feedback-errors-section').addClass('d-none');
+            $('#feedback-errors-list').html('');
+            
+            // Submit button
+            var submitBtn = $('form button[type="submit"]');
+            submitBtn.prop('disabled', false);
+            submitBtn.removeAttr('title');
+        }
+
+        // Tampilkan Modal Download dengan Filter
+        $('#download-data-btn').on('click', function(e) {
+            e.preventDefault();
+            var templateId = $(this).attr('data-template-id');
+            var templateName = $(this).attr('data-template-name');
+            if (!templateId) return;
+            
+            // Set action URL pada form
+            var urlPattern = "{{ route('tenant.import-templates.download', ':id') }}";
+            $('#downloadFilterForm').attr('action', urlPattern.replace(':id', templateId));
+            
+            // Set default nama berkas
+            var cleanTemplateName = templateName.replace(/\s+/g, '_');
+            $('#custom_filename').val(cleanTemplateName + '_dengan_data');
+            
+            // Reset filters
+            $('#filter_komplek').val('');
+            $('#filter_kamar').val('');
+            $('#filter_kelas').val('');
+            $('#filter_jk').val('');
+            $('#filter_status').val('');
+            
+            // Show all rooms initially
+            $('#filter_kamar option').show();
+            
+            // Tampilkan modal
+            $('#downloadFilterModal').modal('show');
+        });
+
+        // Filter Kamar secara dinamis berdasarkan Komplek yang dipilih
+        $('#filter_komplek').on('change', function() {
+            var komplekId = $(this).val();
+            var $kamarSelect = $('#filter_kamar');
+            
+            // Reset pilihan kamar
+            $kamarSelect.val('');
+            
+            if (komplekId === '') {
+                // Tampilkan semua kamar jika komplek tidak dipilih
+                $kamarSelect.find('option').show();
+            } else {
+                // Sembunyikan kamar yang tidak sesuai komplek, tampilkan yang sesuai
+                $kamarSelect.find('option').each(function() {
+                    var optionKomplekId = $(this).attr('data-komplek-id');
+                    if (optionKomplekId === undefined || optionKomplekId === '' || optionKomplekId === komplekId) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            }
         });
     });
 </script>

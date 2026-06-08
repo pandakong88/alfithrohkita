@@ -65,9 +65,11 @@
                 <a href="{{ route('tenant.santri.index') }}" class="btn btn-light btn-round border shadow-sm btn-sm px-3.5">
                     <i class="fas fa-arrow-left me-1.5"></i> Kembali
                 </a>
+                @can('manage_santri')
                 <a href="{{ route('tenant.santri.edit', $santri) }}" class="btn btn-primary btn-round shadow-sm btn-sm px-3.5">
                     <i class="fas fa-edit me-1.5"></i> Edit Profil
                 </a>
+                @endcan
             </div>
         </div>
     </div>
@@ -247,7 +249,9 @@
                         <div class="text-center py-3 text-muted">
                             <i class="fas fa-user-slash fa-2x mb-2 text-muted-light"></i>
                             <p class="mb-0 small italic">Belum ada wali yang terhubung.</p>
+                            @can('manage_santri')
                             <a href="{{ route('tenant.santri.edit', $santri) }}" class="btn btn-link btn-xs mt-1 decoration-none fw-bold">Hubungkan Sekarang</a>
+                            @endcan
                         </div>
                     @endif
                 </div>
@@ -326,6 +330,28 @@
                                     </table>
                                 </div>
                             </div>
+
+                            @php
+                                $customFields = is_array($santri->custom_fields) ? $santri->custom_fields : json_decode($santri->custom_fields ?? '[]', true);
+                            @endphp
+                            @if(!empty($customFields))
+                            <div class="col-12">
+                                <h6 class="fw-bold text-primary mb-3 small uppercase tracking-wider"><i class="fas fa-id-card-alt me-1.5"></i>Informasi Tambahan (Kustom)</h6>
+                                <div class="card card-round shadow-none border p-3.5 mb-0" style="border-radius: 8px;">
+                                    <div class="row g-3">
+                                        @foreach($customFields as $key => $value)
+                                            <div class="col-md-6 col-lg-4">
+                                                <div class="p-3 rounded-3" style="background-color: #f8fafc; border: 1px solid #f1f5f9; border-radius: 8px;">
+                                                    <span class="text-muted d-block small mb-1 fw-bold" style="text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">{{ str_replace('_', ' ', $key) }}</span>
+                                                    <span class="text-dark fw-bold" style="font-size: 13.5px;">{{ $value ?? '-' }}</span>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
                             <div class="col-12">
                                 <hr class="my-2 opacity-25">
                             </div>

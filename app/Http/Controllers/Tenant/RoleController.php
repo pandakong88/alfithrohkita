@@ -45,6 +45,8 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
+        abort_if($role->pondok_id !== auth()->user()->pondok_id, 403);
+
         $permissions = Permission::all();
 
         return view('tenant.role.edit', compact('role','permissions'));
@@ -52,6 +54,8 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role, UpdateRoleAction $action)
     {
+        abort_if($role->pondok_id !== auth()->user()->pondok_id, 403);
+
         $validated = $request->validate([
             'name' => 'required|string',
             'permissions' => 'array'
@@ -65,6 +69,8 @@ class RoleController extends Controller
 
     public function destroy(Role $role, DeleteRoleAction $action)
     {
+        abort_if($role->pondok_id !== auth()->user()->pondok_id, 403);
+
         $action->execute($role);
 
         return back()->with('success','Role dihapus.');

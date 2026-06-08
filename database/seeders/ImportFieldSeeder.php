@@ -75,6 +75,20 @@ class ImportFieldSeeder extends Seeder
                 'column_name' => 'status'
             ],
 
+            [
+                'field_key' => 'tanggal_masuk',
+                'label' => 'Tanggal Masuk',
+                'entity' => 'santri',
+                'column_name' => 'tanggal_masuk'
+            ],
+
+            [
+                'field_key' => 'tanggal_keluar',
+                'label' => 'Tanggal Keluar',
+                'entity' => 'santri',
+                'column_name' => 'tanggal_keluar'
+            ],
+
 
             /*
             |--------------------------------------------------------------------------

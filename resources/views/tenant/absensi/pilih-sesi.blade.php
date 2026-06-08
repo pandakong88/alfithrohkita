@@ -91,14 +91,18 @@
                         </div>
     
                         <div class="row no-gutters">
-                            <div class="col-6 pr-1">
+                            <div class="col-@can('manage_absensi')6 pr-1 @else 12 @endcan">
                                 <a href="{{ route('tenant.absensi.index', ['sesi_id' => $sesi->id]) }}?tanggal={{ $tanggal }}" 
-                                   class="btn btn-primary btn-block btn-round font-weight-bold">Buka Absensi</a>
+                                   class="btn btn-primary btn-block btn-round font-weight-bold">
+                                    @can('manage_absensi') Buka Absensi @else Lihat Rekap @endcan
+                                </a>
                             </div>
+                            @can('manage_absensi')
                             <div class="col-6 pl-1">
                                 <a href="{{ route('tenant.absensi.index', ['sesi_id' => $sesi->id, 'mode' => 'scan']) }}?tanggal={{ $tanggal }}" 
                                    class="btn btn-border btn-block btn-round font-weight-bold">Scan QR</a>
                             </div>
+                            @endcan
                         </div>
                     </div>
                 </div>

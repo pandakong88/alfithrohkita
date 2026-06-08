@@ -15,6 +15,10 @@ class UpdateRoleAction
     {
         $pondokId = $role->pondok_id;
 
+        if ($pondokId !== auth()->user()->pondok_id) {
+            abort(403);
+        }
+
         // 🔥 Normalisasi nama
         $baseName = Str::slug($data['name'], '_');
         $newName  = $baseName . '_' . $pondokId;

@@ -17,10 +17,12 @@
                 <div class="card-header">
                     <div class="d-flex align-items-center justify-content-between gap-2">
                         <h4 class="card-title mb-0">Daftar Kategori Pelanggaran</h4>
+                        @can('manage_pelanggaran')
                         <button class="btn btn-primary btn-round" onclick="tambahKategori()">
                             <i class="fa fa-plus me-1"></i>
                             Tambah Kategori Baru
                         </button>
+                        @endcan
                     </div>
                 </div>
                 <div class="card-body">
@@ -31,7 +33,9 @@
                                     <th>Nama Pelanggaran</th>
                                     <th>Tingkat</th>
                                     <th>Poin</th>
+                                    @can('manage_pelanggaran')
                                     <th style="width: 10%; text-align: center;">Aksi</th>
+                                    @endcan
                                 </tr>
                             </thead>
                             <tbody>
@@ -53,6 +57,7 @@
                                     <td>
                                         <span class="badge badge-black text-white font-weight-bold">{{ $c->poin }} Poin</span>
                                     </td>
+                                    @can('manage_pelanggaran')
                                     <td>
                                         <div class="form-button-action justify-content-center">
                                             <button type="button" class="btn btn-link btn-primary btn-lg" 
@@ -68,6 +73,7 @@
                                             </button>
                                         </div>
                                     </td>
+                                    @endcan
                                 </tr>
                                 @endforeach
                             </tbody>

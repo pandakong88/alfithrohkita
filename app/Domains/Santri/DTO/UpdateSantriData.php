@@ -18,6 +18,7 @@ class UpdateSantriData
         public ?int $wali_id,
         public ?int $kamar_id,
         public ?int $kelas_id,
+        public ?array $custom_fields = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -36,6 +37,7 @@ class UpdateSantriData
             wali_id: $data['wali_id'] ?? null,
             kamar_id: $data['kamar_id'] ?? null,
             kelas_id: $data['kelas_id'] ?? null,
+            custom_fields: $data['custom_fields'] ?? null,
         );
     }
 }

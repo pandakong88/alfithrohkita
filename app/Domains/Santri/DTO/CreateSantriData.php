@@ -5,7 +5,7 @@ namespace App\Domains\Santri\DTO;
 class CreateSantriData
 {
     public function __construct(
-        public string $nis,
+        public ?string $nis,
         public string $nama_lengkap,
         public string $jenis_kelamin,
         public ?string $tempat_lahir,
@@ -16,12 +16,13 @@ class CreateSantriData
         public ?int $wali_id,
         public ?int $kamar_id,
         public ?int $kelas_id,
+        public ?array $custom_fields = null,
     ) {}
 
     public static function fromArray(array $data): self
     {
         return new self(
-            nis: $data['nis'],
+            nis: $data['nis'] ?? null,
             nama_lengkap: $data['nama_lengkap'],
             jenis_kelamin: $data['jenis_kelamin'],
             tempat_lahir: $data['tempat_lahir'] ?? null,
@@ -32,6 +33,7 @@ class CreateSantriData
             wali_id: $data['wali_id'] ?? null,
             kamar_id: $data['kamar_id'] ?? null,
             kelas_id: $data['kelas_id'] ?? null,
+            custom_fields: $data['custom_fields'] ?? null,
         );
     }
 }

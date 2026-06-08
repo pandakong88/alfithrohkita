@@ -67,10 +67,18 @@ Route::middleware('auth')->group(function () {
                 [\App\Http\Controllers\Tenant\DashboardController::class, 'index']
             )->name('dashboard');
 
-                 // ===================GABUT===================
-            Route::resource('handbook', 
-                 \App\Http\Controllers\Tenant\SantriHandbookController::class
-             )->names('santri.handbook');
+            // ================= CMS (Handbook) =================
+            Route::middleware('permission:manage_cms')->group(function () {
+                Route::resource('handbook', 
+                    \App\Http\Controllers\Tenant\SantriHandbookController::class
+                )->except(['index', 'show'])->names('santri.handbook');
+            });
+
+            Route::middleware('permission:view_cms|manage_cms')->group(function () {
+                Route::resource('handbook', 
+                    \App\Http\Controllers\Tenant\SantriHandbookController::class
+                )->only(['index', 'show'])->names('santri.handbook');
+            });
 
             /*
             |--------------------------------------------------------------------------
@@ -78,10 +86,7 @@ Route::middleware('auth')->group(function () {
             |--------------------------------------------------------------------------
             */
             Route::middleware('permission:manage_users')->group(function () {
-
-                Route::resource('user',
-                    \App\Http\Controllers\Tenant\UserController::class
-                );
+                Route::resource('user', \App\Http\Controllers\Tenant\UserController::class)->except(['index', 'show']);
 
                 Route::patch('user/{user}/toggle',
                     [\App\Http\Controllers\Tenant\UserController::class, 'toggle']
@@ -95,11 +100,13 @@ Route::middleware('auth')->group(function () {
                     [\App\Http\Controllers\Tenant\UserController::class, 'restore']
                 )->name('user.restore');
 
-                Route::resource('role',
-                    \App\Http\Controllers\Tenant\RoleController::class
-                );
+                Route::resource('role', \App\Http\Controllers\Tenant\RoleController::class)->except(['index', 'show']);
             });
 
+            Route::middleware('permission:view_users|manage_users')->group(function () {
+                Route::resource('user', \App\Http\Controllers\Tenant\UserController::class)->only(['index']);
+                Route::resource('role', \App\Http\Controllers\Tenant\RoleController::class)->only(['index']);
+            });
 
             /*
             |--------------------------------------------------------------------------
@@ -107,9 +114,7 @@ Route::middleware('auth')->group(function () {
             |--------------------------------------------------------------------------
             */
             Route::middleware('permission:manage_santri')->group(function () {
-
                 // ================= Import =================
-
                 Route::get('/santri/import/template',
                     [\App\Http\Controllers\Tenant\SantriController::class,'downloadTemplate']
                 )->name('santri.template.download');
@@ -136,7 +141,6 @@ Route::middleware('auth')->group(function () {
                     [\App\Http\Controllers\Tenant\SantriController::class, 'importHistory']
                 )->name('santri.import.history');
 
-
                 Route::get('santri/snapshot/import',
                     [\App\Http\Controllers\Tenant\SantriSnapshotController::class, 'importForm']
                 )->name('santri.snapshot.import');
@@ -157,15 +161,8 @@ Route::middleware('auth')->group(function () {
                     [\App\Http\Controllers\Tenant\SantriSnapshotController::class, 'commit']
                 )->name('santri.snapshot.commit');
 
-
-
-                
-
                 // ================= CRUD =================
-
-                Route::resource('santri',
-                    \App\Http\Controllers\Tenant\SantriController::class
-                );
+                Route::resource('santri', \App\Http\Controllers\Tenant\SantriController::class)->except(['index', 'show']);
 
                 Route::get('santri-trash',
                     [\App\Http\Controllers\Tenant\SantriController::class, 'trash']
@@ -176,6 +173,9 @@ Route::middleware('auth')->group(function () {
                 )->name('santri.restore');
             });
 
+            Route::middleware('permission:view_santri|manage_santri')->group(function () {
+                Route::resource('santri', \App\Http\Controllers\Tenant\SantriController::class)->only(['index', 'show']);
+            });
 
             /*
             |--------------------------------------------------------------------------
@@ -183,7 +183,6 @@ Route::middleware('auth')->group(function () {
             |--------------------------------------------------------------------------
             */
             Route::middleware('permission:manage_wali')->group(function () {
-
                 // ================= Import =================
                 Route::get('wali/import/template',
                     [\App\Http\Controllers\Tenant\WaliController::class, 'downloadTemplate']
@@ -211,9 +210,8 @@ Route::middleware('auth')->group(function () {
                     [\App\Http\Controllers\Tenant\WaliController::class, 'importHistory']
                 )->name('wali.import.history');
 
-                Route::resource('wali',
-                    \App\Http\Controllers\Tenant\WaliController::class
-                );
+                // ================= CRUD =================
+                Route::resource('wali', \App\Http\Controllers\Tenant\WaliController::class)->except(['index', 'show']);
 
                 Route::get('wali-trash',
                     [\App\Http\Controllers\Tenant\WaliController::class, 'trash']
@@ -228,80 +226,83 @@ Route::middleware('auth')->group(function () {
                 )->name('wali.ajax.store');
             });
 
+            Route::middleware('permission:view_wali|manage_wali')->group(function () {
+                Route::resource('wali', \App\Http\Controllers\Tenant\WaliController::class)->only(['index', 'show']);
+            });
+
             /*
             |--------------------------------------------------------------------------
             | PERIZINAN MODULE
             |--------------------------------------------------------------------------
             */
-            Route::middleware('permission:manage_perizinan')
-            ->prefix('template-perizinan')
-            ->name('template-perizinan.')
-            ->group(function () {
-        
-                // upload PDF
-                Route::get('/upload', [
-                    App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'create'
-                ])->name('upload');
+            Route::middleware('permission:manage_perizinan')->group(function () {
+                Route::prefix('template-perizinan')
+                ->name('template-perizinan.')
+                ->group(function () {
+                    Route::get('/upload', [
+                        App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'create'
+                    ])->name('upload');
 
-                Route::post('/upload', [
-                    App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'storeFile'
-                ])->name('upload.store');
+                    Route::post('/upload', [
+                        App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'storeFile'
+                    ])->name('upload.store');
 
-                Route::post('/store', [
-                    App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'store'
-                ])->name('store');
+                    Route::post('/store', [
+                        App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'store'
+                    ])->name('store');
 
-                Route::delete('/{id}', [
-                    \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'destroy'
-                ])->name('destroy');
+                    Route::delete('/{id}', [
+                        \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'destroy'
+                    ])->name('destroy');
 
-                Route::post('/{id}/restore', [
-                    \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'restore'
-                ])->name('restore');
+                    Route::post('/{id}/restore', [
+                        \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'restore'
+                    ])->name('restore');
 
-                Route::delete('/{id}/force', [
-                    \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'forceDelete'
-                ])->name('forceDelete');
+                    Route::delete('/{id}/force', [
+                        \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'forceDelete'
+                    ])->name('forceDelete');
 
-                Route::post('/update-status', [
-                    \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'updateStatus'
-                ])->name('update-status');
+                    Route::post('/update-status', [
+                        \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'updateStatus'
+                    ])->name('update-status');
 
-                // resource (optional, bisa tetap)
-                Route::resource('/', App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class)
-                    ->parameters(['' => 'template_perizinan']);
+                    Route::resource('/', App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class)
+                        ->parameters(['' => 'template_perizinan']);
+                });
+
+                Route::prefix('perizinan')
+                ->name('perizinan.')
+                ->group(function () {
+                    Route::get('scan/{kode}', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'scan'
+                    ])->name('scan');
+
+                    Route::post('{id}/kembali', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'kembali'
+                    ])->name('kembali');
+                    
+                    Route::resource('/', \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class)
+                        ->except(['index', 'show']);
+                });
             });
 
-            Route::middleware('permission:manage_perizinan')
-            ->prefix('perizinan')
-            ->name('perizinan.')
-            ->group(function () {
+            Route::middleware('permission:view_perizinan|manage_perizinan')->group(function () {
+                Route::get('perizinan', [
+                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'index'
+                ])->name('perizinan.index');
+
                 Route::get('perizinan/{id}', [
                     \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'show'
-                ])->name('show');
-                Route::get('perizinan/{id}', [
-                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'show'
-                ])->name('show');
+                ])->name('perizinan.show');
 
                 Route::get('/santri-data/{id}', [
                     \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'getSantriData'
-                ])->name('santri-data');
-                
-                Route::get('perizinan/scan/{kode}', [
-                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'scan'
-                ])->name('scan');
+                ])->name('perizinan.santri-data');
 
-                Route::post('perizinan/{id}/kembali', [
-                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'kembali'
-                ])->name('kembali');
-                
-                // Ganti dari POST ke GET dan tambahkan parameter ID
                 Route::get('data-riwayat/{santri_id}', [
                     \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'dataRiwayat'
-                ])->name('data-riwayat');
-
-                // resource untuk manajemen perizinan (CRUD izin keluar masuk)
-                Route::resource('/', \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class);
+                ])->name('perizinan.data-riwayat');
             });
 
             /*
@@ -309,82 +310,72 @@ Route::middleware('auth')->group(function () {
             | ABSENSI MODULE
             |--------------------------------------------------------------------------
             */
-            
-            // 1. MASTER SESI ABSENSI (Mirip Template Perizinan)
-            Route::middleware('permission:manage_absensi')
-            ->prefix('absensi-sesi')
-            ->name('absensi-sesi.')
-            ->group(function () {
-                
-                Route::post('/store', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'store'
-                ])->name('store');
-
-                Route::delete('/{id}', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'destroy'
-                ])->name('destroy');
-
-                Route::post('/{id}/restore', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'restore'
-                ])->name('restore');
-
-                Route::delete('/{id}/force', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'forceDelete'
-                ])->name('forceDelete');
-
-                // Resource untuk Master Sesi (Index, Create, Edit, dll)
-                Route::resource('/', \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class)
-                    ->parameters(['' => 'absensi_sesi']);
-                
-                Route::get('/{id}/manage', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'manageSantri'
-                ])->name('manage');
-                    
-                Route::post('/{id}/manage', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'updateSantri'
-                ])->name('update-santri');
-
-                Route::get('/{id}/print-fisik', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'printAbsenFisik'
-                ])->name('print-fisik');
-
-                // Halaman Setting (Layout Dashboard)
-                Route::get('/{id}/manage-print', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'managePrint'
-                ])->name('manage-print');
-            });
-
-            // 2. INPUT & REKAP ABSENSI
-            Route::middleware('permission:manage_absensi')
+            Route::middleware('permission:view_absensi|manage_absensi')
             ->prefix('absensi')
             ->name('absensi.')
             ->group(function () {
-                
-                // 1. Gerbang Utama
                 Route::get('/pilih-sesi', [
                     \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'pilihSesi'
                 ])->name('pilih-sesi');
         
-                // 2. Input Sesi Spesifik (Manual/Scan)
-                // Pindahkan ke '/sesi/{sesi_id}' agar tidak tabrakan dengan ID resource
                 Route::get('/sesi/{sesi_id}', [
                     \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'index'
                 ])->name('index');
-        
-                // 3. Simpan Batch (Otok Satu)
-                Route::post('/rekap-store', [
-                    \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'store'
-                ])->name('store');
                 
                 Route::get('/print', [
                     \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'print'
                 ])->name('print');
 
-                // 4. Ajax Riwayat
                 Route::get('/data-riwayat/{santri_id}', [
                     \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'dataRiwayat'
                 ])->name('data-riwayat');
+            });
 
+            Route::middleware('permission:manage_absensi')->group(function () {
+                // 1. MASTER SESI ABSENSI
+                Route::prefix('absensi-sesi')
+                ->name('absensi-sesi.')
+                ->group(function () {
+                    Route::post('/store', [
+                        \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'store'
+                    ])->name('store');
+
+                    Route::delete('/{id}', [
+                        \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'destroy'
+                    ])->name('destroy');
+
+                    Route::post('/{id}/restore', [
+                        \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'restore'
+                    ])->name('restore');
+
+                    Route::delete('/{id}/force', [
+                        \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'forceDelete'
+                    ])->name('forceDelete');
+
+                    Route::resource('/', \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class)
+                        ->parameters(['' => 'absensi_sesi']);
+                    
+                    Route::get('/{id}/manage', [
+                        \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'manageSantri'
+                    ])->name('manage');
+                        
+                    Route::post('/{id}/manage', [
+                        \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'updateSantri'
+                    ])->name('update-santri');
+
+                    Route::get('/{id}/print-fisik', [
+                        \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'printAbsenFisik'
+                    ])->name('print-fisik');
+
+                    Route::get('/{id}/manage-print', [
+                        \App\Http\Controllers\Tenant\Absensi\AbsensiSesiController::class, 'managePrint'
+                    ])->name('manage-print');
+                });
+
+                // 2. INPUT ABSENSI (Write)
+                Route::post('absensi/rekap-store', [
+                    \App\Http\Controllers\Tenant\Absensi\AbsensiController::class, 'store'
+                ])->name('absensi.store');
             });
 
             /*
@@ -392,141 +383,161 @@ Route::middleware('auth')->group(function () {
             | PELANGGARAN & KESISWAAN MODULE
             |--------------------------------------------------------------------------
             */
-            
-            // MASTER KATEGORI PELANGGARAN
-            Route::middleware('permission:manage_pelanggaran') // Sesuaikan nama permission kesiswaanmu
-            ->prefix('kategori-pelanggaran')
-            ->name('kategori-pelanggaran.')
-            ->group(function () {
-                
-                // Index (Daftar Kategori Pelanggaran)
-                Route::get('/', [
-                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'index'
-                ])->name('index');
-
-                // Store & Update (Dual action dijadikan satu endpoint POST)
-                Route::post('/store', [
-                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'store'
-                ])->name('store');
-
-                // Delete Kategori
-                Route::delete('/{id}', [
-                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'destroy'
-                ])->name('destroy');
-
-                /** 
-                 * NB: Jika nanti sistem pelanggaranmu butuh fitur Soft Deletes (Restore & Force Delete) 
-                 * seperti absensi sesi, kamu tinggal uncomment baris di bawah ini:
-                 */
-                /*
-                Route::post('/{id}/restore', [
-                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'restore'
-                ])->name('restore');
-
-                Route::delete('/{id}/force', [
-                    \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'forceDelete'
-                ])->name('forceDelete');
-                */
-            });
-
-            // 2. CORE PENCATATAN PELANGGARAN SANTRI
-            Route::middleware('permission:manage_pelanggaran')
+            Route::middleware('permission:view_pelanggaran|manage_pelanggaran')
             ->prefix('pelanggaran')
             ->name('pelanggaran.')
             ->group(function () {
-                
-                // Halaman utama riwayat & form pencatatan
                 Route::get('/', [
                     \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'index'
                 ])->name('index');
-
-                // Simpan pencatatan (Tunggal maupun Massal hasil sebaran DTO)
-                Route::post('/store', [
-                    \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'store'
-                ])->name('store');
-
-                // Update detail pelanggaran per baris data
-                Route::put('/{id}', [
-                    \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'update'
-                ])->name('update');
-
-                // Batalkan/Hapus pencatatan pelanggaran
-                Route::delete('/{id}', [
-                    \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'destroy'
-                ])->name('destroy');
             });
 
-             /*
-            |--------------------------------------------------------------------------
-            | IMPORT TEMPLATE MANAGEMENT
-            |--------------------------------------------------------------------------
-            */
-            Route::post('custom-fields', [
-                App\Http\Controllers\Tenant\ImportTemplateController::class, 'storeCustomField'
-            ])->name('custom-fields.store');
-            
-            Route::delete('custom-fields/{id}', [
-                App\Http\Controllers\Tenant\ImportTemplateController::class, 'destroyCustomField'
-            ])->name('custom-fields.destroy');
+            Route::middleware('permission:manage_pelanggaran')->group(function () {
+                // MASTER KATEGORI PELANGGARAN
+                Route::prefix('kategori-pelanggaran')
+                ->name('kategori-pelanggaran.')
+                ->group(function () {
+                    Route::get('/', [
+                        \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'index'
+                    ])->name('index');
 
-            Route::get('import-templates/{id}/edit', [
-                App\Http\Controllers\Tenant\ImportTemplateController::class, 'edit'
-            ])->name('import-templates.edit');
+                    Route::post('/store', [
+                        \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'store'
+                    ])->name('store');
 
-            Route::put('import-templates/{id}', [
-                App\Http\Controllers\Tenant\ImportTemplateController::class, 'update'
-            ])->name('import-templates.update');
+                    Route::delete('/{id}', [
+                        \App\Http\Controllers\Tenant\Pelanggaran\KategoriPelanggaranController::class, 'destroy'
+                    ])->name('destroy');
+                });
 
-            Route::resource('import-templates',
-                \App\Http\Controllers\Tenant\ImportTemplateController::class
-            )->names('import-templates');
+                // CORE PENCATATAN PELANGGARAN
+                Route::prefix('pelanggaran')
+                ->name('pelanggaran.')
+                ->group(function () {
+                    Route::post('/store', [
+                        \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'store'
+                    ])->name('store');
 
-            Route::get('import-templates/{id}/download',
-                [\App\Http\Controllers\Tenant\ImportTemplateController::class,'download']
-            )->name('import-templates.download');
+                    Route::put('/{id}', [
+                        \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'update'
+                    ])->name('update');
 
-            Route::post('import-survey',
-                [\App\Http\Controllers\Tenant\ImportTemplateController::class,'import']
-            )->name('import-survey');
+                    Route::delete('/{id}', [
+                        \App\Http\Controllers\Tenant\Pelanggaran\PelanggaranSantriController::class, 'destroy'
+                    ])->name('destroy');
+                });
+            });
 
             /*
             |--------------------------------------------------------------------------
-            | IMPORT PROCESS
+            | DORMITORY (ASRAMA) MODULE
             |--------------------------------------------------------------------------
             */
-            Route::get('/upload', 
-                [\App\Http\Controllers\Tenant\ImportController::class, 'index']
-            )->name('import.upload');
-            
-            Route::post('/preview', 
-                [\App\Http\Controllers\Tenant\ImportController::class, 'preview']
-            )->name('import.preview');
-            
-            Route::get('/history', 
-                [\App\Http\Controllers\Tenant\ImportController::class,'history']
-            )->name('import.history');
+            Route::middleware('permission:manage_asrama')->group(function () {
+                Route::resource('komplek', \App\Http\Controllers\Tenant\KomplekController::class)->except(['index']);
+                Route::resource('kamar', \App\Http\Controllers\Tenant\KamarController::class)->except(['index', 'show']);
+                Route::post('kamar/{kamar}/occupant', [\App\Http\Controllers\Tenant\KamarController::class, 'addOccupant'])->name('kamar.occupant.add');
+                Route::delete('kamar/{kamar}/occupant/{santri}', [\App\Http\Controllers\Tenant\KamarController::class, 'removeOccupant'])->name('kamar.occupant.remove');
+                Route::resource('lemari', \App\Http\Controllers\Tenant\LemariController::class)->only(['store', 'update', 'destroy']);
+                Route::put('lemari-slot/{slot}', [\App\Http\Controllers\Tenant\LemariSlotController::class, 'update'])->name('lemari-slot.update');
+            });
 
-            Route::get('/history/{batch}', 
-                [\App\Http\Controllers\Tenant\ImportController::class,'detail']
-            )->name('import.detail');
+            Route::middleware('permission:view_asrama|manage_asrama')->group(function () {
+                Route::resource('komplek', \App\Http\Controllers\Tenant\KomplekController::class)->only(['index']);
+                Route::resource('kamar', \App\Http\Controllers\Tenant\KamarController::class)->only(['index', 'show']);
+            });
+
+            Route::middleware('permission:manage_settings')->group(function () {
+                /*
+                |--------------------------------------------------------------------------
+                | IMPORT TEMPLATE MANAGEMENT
+                |--------------------------------------------------------------------------
+                */
+                Route::post('custom-fields', [
+                    App\Http\Controllers\Tenant\ImportTemplateController::class, 'storeCustomField'
+                ])->name('custom-fields.store');
+                
+                Route::delete('custom-fields/{id}', [
+                    App\Http\Controllers\Tenant\ImportTemplateController::class, 'destroyCustomField'
+                ])->name('custom-fields.destroy');
+
+                Route::get('import-templates/{id}/edit', [
+                    App\Http\Controllers\Tenant\ImportTemplateController::class, 'edit'
+                ])->name('import-templates.edit');
+
+                Route::put('import-templates/{id}', [
+                    App\Http\Controllers\Tenant\ImportTemplateController::class, 'update'
+                ])->name('import-templates.update');
+
+                Route::resource('import-templates',
+                    \App\Http\Controllers\Tenant\ImportTemplateController::class
+                )->names('import-templates');
+
+                Route::get('import-templates/{id}/download',
+                    [\App\Http\Controllers\Tenant\ImportTemplateController::class,'download']
+                )->name('import-templates.download');
+
+                Route::post('import-templates/{id}/duplicate',
+                    [\App\Http\Controllers\Tenant\ImportTemplateController::class,'duplicate']
+                )->name('import-templates.duplicate');
+
+                Route::post('import-survey',
+                    [\App\Http\Controllers\Tenant\ImportTemplateController::class,'import']
+                )->name('import-survey');
+
+                /*
+                |--------------------------------------------------------------------------
+                | IMPORT PROCESS
+                |--------------------------------------------------------------------------
+                */
+                Route::get('/upload', 
+                    [\App\Http\Controllers\Tenant\ImportController::class, 'index']
+                )->name('import.upload');
+                
+                Route::post('/preview', 
+                    [\App\Http\Controllers\Tenant\ImportController::class, 'preview']
+                )->name('import.preview');
+                
+                Route::get('/history', 
+                    [\App\Http\Controllers\Tenant\ImportController::class,'history']
+                )->name('import.history');
+
+                Route::get('/history/{batch}', 
+                    [\App\Http\Controllers\Tenant\ImportController::class,'detail']
+                )->name('import.detail');
+
+                Route::get('/import/status/{batchId}',
+                    [\App\Http\Controllers\Tenant\ImportController::class,'status']
+                )->name('import.status');
 
 
-            Route::get('/{batch}', 
-                [\App\Http\Controllers\Tenant\ImportController::class, 'show']
-            )->name('import.show');
+                Route::get('/{batch}', 
+                    [\App\Http\Controllers\Tenant\ImportController::class, 'show']
+                )->name('import.show')
+                ->whereNumber('batch');
 
-            Route::post('/{batch}/commit', 
-                [\App\Http\Controllers\Tenant\ImportController::class, 'commit']
-            )->name('import.commit');
-          
-            Route::get('/import/{batch}/errors/download', 
-                [\App\Http\Controllers\Tenant\ImportController::class,'downloadErrors']
-            )->name('import.errors.download');
-            
-            Route::post('/import/{batch}/rollback',
-                [\App\Http\Controllers\Tenant\ImportController::class,'rollback']
-            )->name('import.rollback');
+                Route::post('/{batch}/commit', 
+                    [\App\Http\Controllers\Tenant\ImportController::class, 'commit']
+                )->name('import.commit')
+                ->whereNumber('batch');
+              
+                Route::get('/import/{batch}/errors/download', 
+                    [\App\Http\Controllers\Tenant\ImportController::class,'downloadErrors']
+                )->name('import.errors.download');
+                
+                Route::post('/import/{batch}/rollback',
+                    [\App\Http\Controllers\Tenant\ImportController::class,'rollback']
+                )->name('import.rollback');
 
+                // ================= Profil Pondok =================
+                Route::get('/pondok/profile', [
+                    \App\Http\Controllers\Tenant\PondokController::class, 'profile'
+                ])->name('pondok.profile');
+
+                Route::put('/pondok/profile', [
+                    \App\Http\Controllers\Tenant\PondokController::class, 'updateProfile'
+                ])->name('pondok.profile.update');
+            });
 
             });
 

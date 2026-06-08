@@ -8,6 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Models\ImportField;
 use App\Models\ImportTemplate;
 use App\Models\ImportTemplateField;
+use App\Models\Komplek;
+use App\Models\Kamar;
+use App\Models\Kelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -26,10 +29,15 @@ class ImportTemplateController extends Controller
             ->latest()
             ->get();
 
+        // Ambil data lookup untuk filter download
+        $kompleks = Komplek::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
+        $kelas = Kelas::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
+        $kamars = Kamar::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
+
         // Hapus atau beri komentar pada return json ini jika sudah mau dilempar ke view
         // return $templates; 
 
-        return view('tenant.import-templates.index', compact('templates'));
+        return view('tenant.import-templates.index', compact('templates', 'kompleks', 'kelas', 'kamars'));
     }
 
 
@@ -168,10 +176,15 @@ class ImportTemplateController extends Controller
     
         $fields = $template->fields
             ->sortBy('pivot.order');
+
+        // Ambil data lookup untuk filter download
+        $kompleks = Komplek::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
+        $kelas = Kelas::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
+        $kamars = Kamar::where('pondok_id', auth()->user()->pondok_id)->orderBy('nama')->get();
     
         return view(
             'tenant.import-templates.show',
-            compact('template','fields')
+            compact('template', 'fields', 'kompleks', 'kelas', 'kamars')
         );
     }
 
@@ -262,12 +275,75 @@ class ImportTemplateController extends Controller
         // Ambil flag request, default false (kosongan) jika tidak dikirim
         $withData = $request->get('with_data') === 'true' ? true : false;
         
-        $suffix = $withData ? '_dengan_data' : '_template_kosong';
+        $filters = [
+            'komplek_id'    => $request->get('komplek_id'),
+            'kamar_id'      => $request->get('kamar_id'),
+            'kelas_id'      => $request->get('kelas_id'),
+            'jenis_kelamin' => $request->get('jenis_kelamin'),
+            'status'        => $request->get('status'),
+        ];
+
+        $filename = $request->get('filename');
+        if (empty($filename)) {
+            $suffix = $withData ? '_dengan_data' : '_template_kosong';
+            $filename = $template->nama_template . $suffix;
+        }
+
+        // Sanitasi nama file untuk menghindari karakter sistem file ilegal
+        $filename = preg_replace('/[^a-zA-Z0-9\s\-_.]/', '', $filename);
+        $filename = trim($filename);
+        if (empty($filename)) {
+            $filename = 'template_export';
+        }
+
+        if (!str_ends_with(strtolower($filename), '.xlsx')) {
+            $filename .= '.xlsx';
+        }
 
         return Excel::download(
-            new DynamicTemplateExport($template, $withData),
-            $template->nama_template . $suffix . '.xlsx'
+            new DynamicTemplateExport($template, $withData, $filters),
+            $filename
         );
+    }
+
+    public function duplicate($id)
+    {
+        $template = ImportTemplate::with('fields')
+            ->where('pondok_id', auth()->user()->pondok_id)
+            ->findOrFail($id);
+
+        DB::beginTransaction();
+
+        try {
+            $newTemplate = ImportTemplate::create([
+                'pondok_id' => auth()->user()->pondok_id,
+                'nama_template' => $template->nama_template . ' (Salinan)'
+            ]);
+
+            $pivotData = [];
+            foreach ($template->fields as $field) {
+                $pivotData[$field->id] = [
+                    'order' => $field->pivot->order,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            $newTemplate->fields()->sync($pivotData);
+
+            DB::commit();
+
+            return redirect()
+                ->route('tenant.import-templates.index')
+                ->with('success', 'Template berhasil diduplikasi');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal menduplikat template: ' . $e->getMessage());
+        }
     }
 
     public function import(Request $request)

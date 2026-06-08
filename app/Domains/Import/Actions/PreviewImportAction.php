@@ -24,6 +24,9 @@ class PreviewImportAction
 
             $templateFields = $template->fields;
 
+            $pondok = \App\Models\Pondok::find($pondokId);
+            $nisAutoGenerate = $pondok ? $pondok->nis_auto_generate : false;
+
             // 2. Baca nama-nama sheet menggunakan PhpSpreadsheet reader
             $sheetNames = [];
             try {
@@ -217,6 +220,9 @@ class PreviewImportAction
                         if (str_starts_with($value, "'")) {
                             $value = substr($value, 1);
                         }
+                        if ($value === '-' || strtolower($value) === 'null') {
+                            $value = null;
+                        }
                     }
 
                     // Paksa string untuk nomor panjang (NIS, NIK, No HP) agar tidak berubah jadi format scientific/float
@@ -295,6 +301,9 @@ class PreviewImportAction
                 // Check dynamic required fields (configured in the database)
                 foreach ($templateFields as $field) {
                     if ($field->is_required && (!isset($payload[$field->field_key]) || trim($payload[$field->field_key]) === '')) {
+                        if ($field->field_key === 'nis' && $nisAutoGenerate) {
+                            continue;
+                        }
                         $errors[] = "Kolom {$field->label} wajib diisi.";
                     }
                 }
@@ -309,7 +318,7 @@ class PreviewImportAction
                                  !empty($payload['status']);
 
                 if ($hasSantriData || array_key_exists('nis', $payload)) {
-                    if (empty($payload['nis'])) {
+                    if (empty($payload['nis']) && !$nisAutoGenerate) {
                         $errors[] = 'NIS (Nomor Induk Santri) wajib diisi untuk memasukkan data Santri.';
                     }
                 }
@@ -397,25 +406,34 @@ class PreviewImportAction
                 }
 
                 // 6. Penentuan Mode (Insert / Update / Skip) berdasarkan NIS
-                if (!empty($payload['nis'])) {
-                    $santri = Santri::where('pondok_id', $pondokId)
-                        ->where('nis', $payload['nis'])
-                        ->first();
+                if ($hasSantriData || array_key_exists('nis', $payload)) {
+                    if (!empty($payload['nis'])) {
+                        $santri = Santri::where('pondok_id', $pondokId)
+                            ->where('nis', $payload['nis'])
+                            ->first();
 
-                    if ($santri) {
-                        if ($modeExisting === 'skip') {
-                            $mode = 'skip';
+                        if ($santri) {
+                            if ($modeExisting === 'skip') {
+                                $mode = 'skip';
+                            } else {
+                                $mode = 'update';
+                            }
                         } else {
-                            $mode = 'update';
+                            if ($modeMissing === 'create') {
+                                $mode = 'insert';
+                            } elseif ($modeMissing === 'skip') {
+                                $mode = 'skip';
+                            } else {
+                                $mode = 'error';
+                                $errors[] = 'NIS tidak ditemukan di database pondok ini';
+                            }
                         }
                     } else {
-                        if ($modeMissing === 'create') {
+                        if ($nisAutoGenerate) {
                             $mode = 'insert';
-                        } elseif ($modeMissing === 'skip') {
-                            $mode = 'skip';
                         } else {
                             $mode = 'error';
-                            $errors[] = 'NIS tidak ditemukan di database pondok ini';
+                            $errors[] = 'NIS wajib diisi';
                         }
                     }
                 }

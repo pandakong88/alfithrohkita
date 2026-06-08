@@ -20,9 +20,11 @@
                 </li>
             </ul>
         </div>
+        @can('manage_cms')
         <a href="{{ route('tenant.santri.handbook.create') }}" class="btn btn-primary btn-round">
             <i class="fas fa-plus-circle me-1"></i> Tambah Versi
         </a>
+        @endcan
     </div>
 
     <!-- Alert Success -->
@@ -176,6 +178,7 @@
                                            title="Buka PDF">
                                             <i class="fas fa-external-link-alt"></i>
                                         </a>
+                                        @can('manage_cms')
                                         <!-- Edit -->
                                         <a href="{{ route('tenant.santri.handbook.edit', $item->id) }}"
                                            class="btn btn-link btn-primary"
@@ -197,6 +200,7 @@
                                                 <i class="fa fa-times"></i>
                                             </button>
                                         </form>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

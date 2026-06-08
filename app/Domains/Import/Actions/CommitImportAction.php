@@ -13,15 +13,17 @@ class CommitImportAction
     {
         $batch = ImportBatch::with('rows')->findOrFail($batchId);
         $resolverManager = new ResolverManager();
+        $priorityEntities = ['komplek', 'kamar', 'lemari', 'lemari_slot', 'kelas', 'wali', 'santri'];
 
-        DB::transaction(function () use ($batch, $resolverManager) {
-            
-            $priorityEntities = ['komplek', 'kamar', 'lemari', 'lemari_slot', 'kelas', 'wali', 'santri'];
+        foreach ($batch->rows as $row) {
+            if (!$row->is_valid || $row->mode === 'skip') {
+                $batch->increment('processed_rows');
+                continue;
+            }
 
-            foreach ($batch->rows()->where('is_valid', true)->get() as $row) {
+            // Jalankan transaksi per baris agar data ter-commit langsung & progres ter-update real-time
+            DB::transaction(function () use ($batch, $resolverManager, $priorityEntities, $row) {
                 $payload = $row->payload;
-                if ($row->mode === 'skip') continue;
-
                 $resolved = [];
 
                 foreach ($priorityEntities as $entity) {
@@ -37,6 +39,14 @@ class CommitImportAction
                     // Panggil resolver
                     $model = $this->callResolve($resolver, $batch->pondok_id, $parentId, $payload);
                     if (!$model) continue;
+
+                    // Set created_by and updated_by for Santri and Wali
+                    if ($entity === 'santri' || $entity === 'wali') {
+                        if (!$model->exists) {
+                            $model->created_by = $batch->uploaded_by;
+                        }
+                        $model->updated_by = $batch->uploaded_by;
+                    }
 
                     // Simpan state sebelum update untuk log audit
                     $original = $model->exists ? $model->getOriginal() : [];
@@ -58,19 +68,31 @@ class CommitImportAction
                         if ($model->isDirty() || !$model->exists) {
                             $model->save();
                         }
+
+                        // Hubungkan ke slot lemari jika ada
+                        if (isset($resolved['lemari_slot'])) {
+                            $slot = $resolved['lemari_slot'];
+                            if ($slot->santri_id != $model->id) {
+                                $slot->santri_id = $model->id;
+                                $slot->save();
+                            }
+                        }
                     }
 
                     $this->logModelChanges($batch->id, $row->id, $entity, $model, $original);
                     $resolved[$entity] = $model;
                 }
-            }
+            });
 
-            $batch->update([
-                'status' => 'committed',
-                'committed_by' => auth()->id(),
-                'committed_at' => now()
-            ]);
-        });
+            // Update counter kemajuan secara real-time di database
+            $batch->increment('processed_rows');
+        }
+
+        $batch->update([
+            'status' => 'committed',
+            'committed_by' => auth()->id(),
+            'committed_at' => now()
+        ]);
     }
 
     private function callResolve($resolver, $pondokId, $parentId, $payload)

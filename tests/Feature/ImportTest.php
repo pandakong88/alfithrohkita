@@ -49,6 +49,9 @@ class ImportTest extends TestCase
             'pondok_id' => $this->pondok->id,
         ]);
 
+        \Spatie\Permission\Models\Permission::findOrCreate('manage_settings');
+        $this->user->givePermissionTo('manage_settings');
+
         $this->actingAs($this->user);
 
         // Create Import Template
@@ -230,12 +233,14 @@ class ImportTest extends TestCase
         $this->assertNotNull($santri);
         $this->assertEquals('Santri Pertama', $santri->nama_lengkap);
         $this->assertEquals('Alamat A', $santri->alamat);
+        $this->assertEquals($this->user->id, $santri->created_by);
 
         // Verify Wali saved
         $wali = Wali::where('pondok_id', $this->pondok->id)->where('nik', '1234567890123456')->first();
         $this->assertNotNull($wali);
         $this->assertEquals('Wali Pertama', $wali->nama);
         $this->assertEquals($wali->id, $santri->wali_id);
+        $this->assertEquals($this->user->id, $wali->created_by);
 
         // 2. Second import: Update Santri's name/address and keep Wali
         $file2 = $this->createCsvFile(
@@ -262,6 +267,7 @@ class ImportTest extends TestCase
         $this->assertEquals('Santri Pertama Updated', $santriUpdated->nama_lengkap);
         $this->assertEquals('Alamat A Updated', $santriUpdated->alamat);
         $this->assertEquals($wali->id, $santriUpdated->wali_id);
+        $this->assertEquals($this->user->id, $santriUpdated->updated_by);
     }
 
     public function test_import_strips_leading_single_quotes_from_strings(): void
@@ -675,5 +681,100 @@ class ImportTest extends TestCase
         $this->assertContains('No HP Santri harus berupa nomor ponsel Indonesia yang valid (dimulai dengan 08, 10-15 digit).', $errors2);
         $this->assertContains('No HP Wali harus berupa nomor ponsel Indonesia yang valid (dimulai dengan 08, 10-15 digit).', $errors2);
         $this->assertContains('Format tanggal pada kolom Tanggal Lahir tidak valid. Gunakan format YYYY-MM-DD atau DD/MM/YYYY.', $errors2);
+    }
+
+    public function test_import_with_empty_or_dash_nis_succeeds_when_auto_generate_enabled(): void
+    {
+        $this->pondok->update(['nis_auto_generate' => true]);
+
+        $this->setupTemplateFields(['nis', 'nama_lengkap', 'jenis_kelamin']);
+
+        // Set the NIS field in the template as required (is_required = 1) to test our bypass logic
+        $fieldNis = \App\Models\ImportField::where('field_key', 'nis')->first();
+        $fieldNis->update(['is_required' => true]);
+
+        $file = $this->createCsvFile(
+            ['NIS', 'Nama Santri', 'Jenis Kelamin'],
+            [
+                ['-', 'Yashiro', 'L'], // NIS is a dash placeholder
+                ['', 'Nene', 'P'],   // NIS is blank
+            ]
+        );
+
+        $previewAction = new PreviewImportAction();
+        $batch = $previewAction->execute(
+            $this->pondok->id,
+            $this->user->id,
+            $this->template->id,
+            $file,
+            'create',
+            'update'
+        );
+
+        $this->assertNotNull($batch);
+        $this->assertEquals(2, $batch->total_rows);
+        $this->assertEquals(2, $batch->valid_rows); // Both valid due to bypass & normalization
+        $this->assertEquals(0, $batch->invalid_rows);
+
+        $commitAction = new \App\Domains\Import\Actions\CommitImportAction();
+        $commitAction->execute($batch->id);
+
+        $this->assertDatabaseHas('santris', [
+            'pondok_id' => $this->pondok->id,
+            'nama_lengkap' => 'Yashiro',
+            'nis' => '20260001', // generated
+        ]);
+
+        $this->assertDatabaseHas('santris', [
+            'pondok_id' => $this->pondok->id,
+            'nama_lengkap' => 'Nene',
+            'nis' => '20260002', // generated
+        ]);
+    }
+
+    public function test_template_cloning_via_post_endpoint(): void
+    {
+        $this->setupTemplateFields(['nis', 'nama_lengkap']);
+
+        $response = $this->post(route('tenant.import-templates.duplicate', $this->template->id));
+
+        $response->assertStatus(302);
+        $response->assertRedirect(route('tenant.import-templates.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('import_templates', [
+            'pondok_id' => $this->pondok->id,
+            'nama_template' => 'Template Lengkap (Salinan)',
+        ]);
+
+        $cloned = ImportTemplate::where('nama_template', 'Template Lengkap (Salinan)')->first();
+        $this->assertNotNull($cloned);
+        $this->assertEquals(2, $cloned->fields()->count());
+    }
+
+    public function test_progress_status_json_response(): void
+    {
+        $batch = \App\Models\ImportBatch::create([
+            'pondok_id' => $this->pondok->id,
+            'template_id' => $this->template->id,
+            'filename' => 'test.xlsx',
+            'status' => 'processing',
+            'total_rows' => 10,
+            'processed_rows' => 4,
+            'valid_rows' => 4,
+            'invalid_rows' => 0,
+            'uploaded_by' => $this->user->id,
+        ]);
+
+        $response = $this->get(route('tenant.import.status', $batch->id));
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'processing',
+            'total_rows' => 10,
+            'processed_rows' => 4,
+            'valid_rows' => 4,
+            'invalid_rows' => 0,
+        ]);
     }
 }

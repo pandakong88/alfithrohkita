@@ -15,7 +15,14 @@ class Pondok extends Model
         'address',
         'phone',
         'logo',
-        'is_active'
+        'is_active',
+        'nis_pattern',
+        'nis_auto_generate',
+    ];
+
+    protected $casts = [
+        'nis_auto_generate' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function users()
