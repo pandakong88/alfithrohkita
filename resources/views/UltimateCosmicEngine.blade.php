@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>For - You ;) </title>
+    <title>Cosmic Engine - Optimized</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <style>
@@ -17,6 +17,34 @@
       canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; }
       #offCanvas { display: none; }
       video { display: none; }
+      #camPreview {
+        position: absolute;
+        bottom: 16px; right: 16px;
+        width: 160px; height: 110px;
+        z-index: 4;
+        border-radius: 10px;
+        border: 1.5px solid #1f2833;
+        overflow: hidden;
+        box-shadow: 0 0 14px rgba(0,240,255,0.25);
+        background: #000;
+        cursor: pointer;
+        transition: opacity 0.3s;
+      }
+      #camPreview:hover { opacity: 0.5; }
+      #camPreview video {
+        display: block;
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+      }
+      #camLabel {
+        position: absolute;
+        bottom: 130px; right: 16px;
+        font-size: 9px; color: #66fcf1;
+        z-index: 4; pointer-events: none;
+        text-shadow: 0 0 6px #00f0ff;
+        letter-spacing: 0.5px;
+      }
       #loading {
         position: absolute; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
@@ -51,6 +79,10 @@
       <video id="webcam" autoplay playsinline></video>
       <canvas id="particleCanvas"></canvas>
       <canvas id="offCanvas"></canvas>
+      <div id="camLabel">📷 TAP UNTUK HIDE</div>
+      <div id="camPreview">
+        <video id="camMirror" autoplay playsinline muted></video>
+      </div>
     </div>
 
     <script>
@@ -356,7 +388,26 @@
       onFrame: async () => { await handsModel.send({ image: video }); },
       facingMode: "user", width: 480, height: 360
     });
-    cam.start();
+    cam.start().then(() => {
+      // Mirror camera ke preview box
+      const camMirror = document.getElementById("camMirror");
+      const camPreview = document.getElementById("camPreview");
+      const camLbl = document.getElementById("camLabel");
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+          .then(stream => { camMirror.srcObject = stream; })
+          .catch(() => { camPreview.style.display = "none"; camLbl.style.display = "none"; });
+      }
+      // Tap untuk toggle hide/show
+      let camVisible = true;
+      camPreview.addEventListener("click", (e) => {
+        e.stopPropagation();
+        camVisible = !camVisible;
+        camPreview.style.opacity = camVisible ? "1" : "0";
+        camPreview.style.pointerEvents = camVisible ? "auto" : "none";
+        camLbl.textContent = camVisible ? "📷 TAP UNTUK HIDE" : "📷 TAP UNTUK SHOW";
+      });
+    });
 
     resizeCanvas();
 
