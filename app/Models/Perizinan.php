@@ -59,6 +59,11 @@ class Perizinan extends Model
         return $this->belongsTo(TemplatePerizinan::class, 'template_perizinan_id');
     }
 
+    public function approvals()
+    {
+        return $this->hasMany(PerizinanApproval::class, 'perizinan_id');
+    }
+
     public function pondok()
     {
         return $this->belongsTo(Pondok::class);
@@ -113,7 +118,7 @@ class Perizinan extends Model
     protected static function booted()
     {
         static::saving(function ($model) {
-            if ($model->status === 'dibatalkan') {
+            if ($model->status === 'dibatalkan' || $model->status === 'pending') {
                 return;
             }
 

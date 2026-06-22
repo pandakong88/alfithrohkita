@@ -51,7 +51,18 @@ class CreatePerizinanAction
             $requiredKeys = $template->required_variables ?? [];
             $finalSnapshot = [];
 
-            foreach ($requiredKeys as $key) {
+            $variableKeys = [];
+            if (is_array($requiredKeys)) {
+                foreach ($requiredKeys as $key => $val) {
+                    if (is_string($key)) {
+                        $variableKeys[] = $key;
+                    } else {
+                        $variableKeys[] = $val;
+                    }
+                }
+            }
+
+            foreach ($variableKeys as $key) {
                 // Prioritas 1: Input manual dari form
                 if (isset($data->keterangan[$key]) && !empty($data->keterangan[$key])) {
                     $finalSnapshot[$key] = $data->keterangan[$key];
@@ -68,6 +79,9 @@ class CreatePerizinanAction
                 }
             }
 
+            $steps = $template && isset($template->rules['approval_workflow']) ? $template->rules['approval_workflow'] : [];
+            $hasWorkflow = count($steps) > 0;
+
             // 5. Create Perizinan
             $perizinan = Perizinan::create([
                 'pondok_id' => $pondokId,
@@ -77,57 +91,59 @@ class CreatePerizinanAction
                 'nomor_manual' => $data->nomor_manual,
                 'tanggal_keluar' => $data->tanggal_keluar,
                 'batas_kembali' => $data->batas_kembali,
-                'status' => 'aktif',
+                'status' => $hasWorkflow ? 'pending' : 'aktif',
                 'keperluan' => $data->keperluan,
                 'variables' => $finalSnapshot,
                 'created_by' => $user->id,
             ]);
 
-            // Update status santri
-            $santri->update(['status' => 'izin']);
+            if (!$hasWorkflow) {
+                // Update status santri
+                $santri->update(['status' => 'izin']);
 
-            // 6. Sinkronisasi Absensi (Fix Rentang Tanggal)
-            $sesiRelevan = AbsensiSesi::active()
-                ->where('pondok_id', $pondokId)
-                ->where(function ($query) use ($santri) {
-                    $query->where('target_tipe', 'global')
-                        ->orWhere(function ($q) use ($santri) {
-                            $q->where('target_tipe', 'kelas')->where('target_id', $santri->kelas_id);
-                        })
-                        ->orWhere(function ($q) use ($santri) {
-                            $q->where('target_tipe', 'kamar')->where('target_id', $santri->kamar_id);
-                        })
-                        ->orWhere(function ($q) use ($santri) {
-                            $q->where('target_tipe', 'plotting')
-                              ->whereHas('santris', fn($sq) => $sq->where('santri_id', $santri->id));
-                        });
-                })->get();
+                // 6. Sinkronisasi Absensi (Fix Rentang Tanggal)
+                $sesiRelevan = AbsensiSesi::active()
+                    ->where('pondok_id', $pondokId)
+                    ->where(function ($query) use ($santri) {
+                        $query->where('target_tipe', 'global')
+                            ->orWhere(function ($q) use ($santri) {
+                                $q->where('target_tipe', 'kelas')->where('target_id', $santri->kelas_id);
+                            })
+                            ->orWhere(function ($q) use ($santri) {
+                                $q->where('target_tipe', 'kamar')->where('target_id', $santri->kamar_id);
+                            })
+                            ->orWhere(function ($q) use ($santri) {
+                                $q->where('target_tipe', 'plotting')
+                                  ->whereHas('santris', fn($sq) => $sq->where('santri_id', $santri->id));
+                            });
+                    })->get();
 
-            if ($sesiRelevan->isNotEmpty()) {
-                // Pastikan start & end of day agar mencakup hari terakhir
-                $period = CarbonPeriod::create(
-                    $perizinan->tanggal_keluar->copy()->startOfDay(),
-                    $perizinan->batas_kembali->copy()->endOfDay()
-                );
+                if ($sesiRelevan->isNotEmpty()) {
+                    // Pastikan start & end of day agar mencakup hari terakhir
+                    $period = CarbonPeriod::create(
+                        $perizinan->tanggal_keluar->copy()->startOfDay(),
+                        $perizinan->batas_kembali->copy()->endOfDay()
+                    );
 
-                $absensiDtos = [];
-                foreach ($period as $date) {
-                    $tanggalString = $date->format('Y-m-d');
-                    foreach ($sesiRelevan as $sesi) {
-                        $absensiDtos[] = new AbsensiDTO(
-                            pondok_id: $pondokId,
-                            santri_id: $santri->id,
-                            sesi_id:   $sesi->id,
-                            tanggal:   $tanggalString,
-                            status:    'izin',
-                            input_by:  $user->id,
-                            metode:    'manual', // Mengatasi error Enum/Truncated kemarin
-                            keterangan: "Otomatis: Izin via Surat {$perizinan->kode_surat}"
-                        );
+                    $absensiDtos = [];
+                    foreach ($period as $date) {
+                        $tanggalString = $date->format('Y-m-d');
+                        foreach ($sesiRelevan as $sesi) {
+                            $absensiDtos[] = new AbsensiDTO(
+                                pondok_id: $pondokId,
+                                santri_id: $santri->id,
+                                sesi_id:   $sesi->id,
+                                tanggal:   $tanggalString,
+                                status:    'izin',
+                                input_by:  $user->id,
+                                metode:    'manual', // Mengatasi error Enum/Truncated kemarin
+                                keterangan: "Otomatis: Izin via Surat {$perizinan->kode_surat}"
+                            );
+                        }
                     }
-                }
 
-                $this->absensiAction->execute($absensiDtos);
+                    $this->absensiAction->execute($absensiDtos);
+                }
             }
 
             // 7. Log Activity

@@ -12,6 +12,7 @@ class UpdateTemplatePerizinanData
 
         // 🔥 core fitur kamu
         public array $required_variables = [],
+        public ?array $rules = [],
         public ?string $file_pdf = null,
 
         public bool $is_active = true,
@@ -28,7 +29,8 @@ class UpdateTemplatePerizinanData
 
             layout_print: (int) ($data['layout_print'] ?? 4),
 
-            required_variables: array_values($data['required_variables'] ?? []),
+            required_variables: $data['required_variables'] ?? [],
+            rules: $data['rules'] ?? [],
 
             file_pdf: $data['file_pdf'] ?? null,
 

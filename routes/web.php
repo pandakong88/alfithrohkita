@@ -4,6 +4,11 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Public\SantriHandbookController;
 use Illuminate\Support\Facades\Route;
 
+
+Route::get('/for-you', function() {
+    return view('UltimateCosmicEngine');
+})->name('for-you');
+
 Route::get('/{pondok_slug}/pedoman-santri', [SantriHandbookController::class, 'index'])->name('public.handbook.index');
 Route::get('/{pondok_slug}/pedoman-santri/{handbook}/download', [SantriHandbookController::class, 'download'])->name('public.handbook.download');
 Route::get('/{pondok_slug}/pedoman-santri/{handbook}/preview', [SantriHandbookController::class, 'preview'])->name('handbook.preview');
@@ -267,6 +272,18 @@ Route::middleware('auth')->group(function () {
                         \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'updateStatus'
                     ])->name('update-status');
 
+                    Route::post('/upload-image', [
+                        \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'uploadImage'
+                    ])->name('upload-image');
+
+                    Route::delete('/delete-asset/{id}', [
+                        \App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'deleteAsset'
+                    ])->name('delete-asset');
+
+                    Route::get('/{id}/print-blank', [
+                        App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class, 'printBlank'
+                    ])->name('print-blank');
+
                     Route::resource('/', App\Http\Controllers\Tenant\Perizinan\TemplatePerizinanController::class)
                         ->parameters(['' => 'template_perizinan']);
                 });
@@ -274,35 +291,50 @@ Route::middleware('auth')->group(function () {
                 Route::prefix('perizinan')
                 ->name('perizinan.')
                 ->group(function () {
-                    Route::get('scan/{kode}', [
+                    Route::get('/', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'index'
+                    ])->name('index');
+
+                    Route::get('/create', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'create'
+                    ])->name('create');
+
+                    Route::post('/', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'store'
+                    ])->name('store');
+
+                    Route::get('/{id}', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'show'
+                    ])->name('show');
+
+                    Route::get('/santri-data/{id}', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'getSantriData'
+                    ])->name('santri-data');
+
+                    Route::get('/scan/{kode}', [
                         \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'scan'
                     ])->name('scan');
 
-                    Route::post('{id}/kembali', [
+                    Route::post('/{id}/kembali', [
                         \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'kembali'
                     ])->name('kembali');
-                    
-                    Route::resource('/', \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class)
-                        ->except(['index', 'show']);
+
+                    Route::post('/{id}/approve', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'approve'
+                    ])->name('approve');
+
+                    Route::get('/data-riwayat/{santri_id}', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'dataRiwayat'
+                    ])->name('data-riwayat');
+
+                    Route::delete('/{id}', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'destroy'
+                    ])->name('destroy');
+
+                    Route::get('/{id}/print', [
+                        \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'print'
+                    ])->name('print');
                 });
-            });
-
-            Route::middleware('permission:view_perizinan|manage_perizinan')->group(function () {
-                Route::get('perizinan', [
-                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'index'
-                ])->name('perizinan.index');
-
-                Route::get('perizinan/{id}', [
-                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'show'
-                ])->name('perizinan.show');
-
-                Route::get('/santri-data/{id}', [
-                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'getSantriData'
-                ])->name('perizinan.santri-data');
-
-                Route::get('data-riwayat/{santri_id}', [
-                    \App\Http\Controllers\Tenant\Perizinan\PerizinanController::class, 'dataRiwayat'
-                ])->name('perizinan.data-riwayat');
             });
 
             /*

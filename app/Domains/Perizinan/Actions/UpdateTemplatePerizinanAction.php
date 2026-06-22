@@ -35,12 +35,46 @@ class UpdateTemplatePerizinanAction
             }
 
             // 🔥 VALIDASI VARIABLE
-            $validKeys = TemplateVariable::whereIn('key', $data->required_variables)
+            $keysToCheck = [];
+            $isAssoc = false;
+            if (is_array($data->required_variables)) {
+                foreach ($data->required_variables as $key => $val) {
+                    $item = is_string($key) ? $key : $val;
+                    if (str_starts_with($item, 'custom_variables.') || in_array($item, ['qr_code', 'kode_surat'])) {
+                        continue;
+                    }
+                    if (is_string($key)) {
+                        $keysToCheck[] = $key;
+                        $isAssoc = true;
+                    } else {
+                        $keysToCheck[] = $val;
+                    }
+                }
+            }
+
+            $validKeys = TemplateVariable::whereIn('key', $keysToCheck)
                 ->pluck('key')
                 ->toArray();
-
-            if (count($validKeys) !== count($data->required_variables)) {
+    
+            if (count($validKeys) !== count($keysToCheck)) {
                 throw new \Exception('Beberapa variable tidak valid');
+            }
+
+            $savedVariables = [];
+            if ($isAssoc) {
+                foreach ($data->required_variables as $key => $val) {
+                    if (in_array($key, $validKeys) || str_starts_with($key, 'custom_variables.') || in_array($key, ['qr_code', 'kode_surat'])) {
+                        $savedVariables[$key] = $val;
+                    }
+                }
+            } else {
+                $customKeys = [];
+                foreach ($data->required_variables as $v) {
+                    if (str_starts_with($v, 'custom_variables.') || in_array($v, ['qr_code', 'kode_surat'])) {
+                        $customKeys[] = $v;
+                    }
+                }
+                $savedVariables = array_merge($validKeys, $customKeys);
             }
 
             // 🔥 HANDLE DEFAULT
@@ -65,9 +99,11 @@ class UpdateTemplatePerizinanAction
                 'nama' => $data->nama,
                 'slug' => Str::slug($data->nama),
                 'deskripsi' => $data->deskripsi,
+                'source_type' => $filePath ? 'upload_pdf' : 'html',
                 'format_surat' => $data->format_surat,
                 'layout_print' => $data->layout_print,
-                'required_variables' => $validKeys,
+                'required_variables' => $savedVariables,
+                'rules' => $data->rules,
                 'file_pdf' => $filePath,
                 'is_active' => $data->is_active,
                 'is_default' => $data->is_default,

@@ -139,11 +139,44 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <span class="badge {{ $p->status == 'kembali' ? 'badge-success' : ($isOverdue ? 'badge-danger' : 'badge-primary') }} rounded-pill px-3">
-                                    {{ $p->status == 'kembali' ? 'Kembali' : ($isOverdue ? 'Terlambat' : 'Aktif') }}
-                                </span>
+                                @if($p->status == 'pending')
+                                    @php
+                                        $template = $p->template;
+                                        $steps = $template && isset($template->rules['approval_workflow']) ? $template->rules['approval_workflow'] : [];
+                                        $currentStepIndex = $p->current_step;
+                                        $currentStep = null;
+                                        foreach ($steps as $st) {
+                                            if (isset($st['step']) && (int)$st['step'] === $currentStepIndex) {
+                                                $currentStep = $st;
+                                                break;
+                                            }
+                                        }
+                                        if (!$currentStep && !empty($steps[$currentStepIndex - 1])) {
+                                            $currentStep = $steps[$currentStepIndex - 1];
+                                        }
+                                        $stepName = $currentStep ? ($currentStep['name'] ?? "Pos {$currentStepIndex}") : "Pending";
+                                        $reqRole = $currentStep ? ($currentStep['required_role'] ?? '') : '';
+                                        $user = auth()->user();
+                                        $canApprove = $reqRole ? ($user->hasRole($reqRole) || $user->hasRole('admin_pondok') || $user->hasRole('super_admin')) : true;
+                                    @endphp
+                                    <span class="badge badge-warning rounded-pill px-3 text-white" title="Wewenang: {{ strtoupper(str_replace('_', ' ', $reqRole)) }}">
+                                        <i class="fas fa-hourglass-half me-1"></i> {{ $stepName }}
+                                    </span>
+                                @else
+                                    <span class="badge {{ $p->status == 'kembali' ? 'badge-success' : ($isOverdue ? 'badge-danger' : 'badge-primary') }} rounded-pill px-3">
+                                        {{ $p->status == 'kembali' ? 'Kembali' : ($isOverdue ? 'Terlambat' : 'Aktif') }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="text-end">
+                                @if($p->status == 'pending' && isset($canApprove) && $canApprove)
+                                    <form action="{{ route('tenant.perizinan.approve', $p->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-icon btn-round btn-sm btn-label-success mx-1 animate__animated animate__pulse animate__infinite" title="Setujui Pos Ini (Manual)">
+                                            <i class="fa fa-check-circle"></i>
+                                        </button>
+                                    </form>
+                                @endif
                                 <button onclick="openRiwayatModal({{ $p->santri_id }}, '{{ $p->santri->nama_lengkap }}')" class="btn btn-icon btn-round btn-sm btn-label-warning mx-1" title="Riwayat">
                                     <i class="fa fa-history"></i>
                                 </button>
@@ -228,6 +261,26 @@
 @push('scripts')
 <script src="https://unpkg.com/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
+    $(document).ready(function() {
+        // Handle Enter key on scan input (standard barcode scanner input behavior)
+        $('#quickScanInput').on('keypress', function(e) {
+            if (e.which === 13) {
+                let code = $(this).val().trim();
+                if (code) {
+                    window.location.href = "{{ route('tenant.perizinan.scan', '') }}/" + code;
+                }
+            }
+        });
+
+        // Handle search button click
+        $('#quickScanInput').closest('.quick-scan-group').find('button').on('click', function() {
+            let code = $('#quickScanInput').val().trim();
+            if (code) {
+                window.location.href = "{{ route('tenant.perizinan.scan', '') }}/" + code;
+            }
+        });
+    });
+
     let calendar;
 
     function openRiwayatModal(santriId, namaSantri) {

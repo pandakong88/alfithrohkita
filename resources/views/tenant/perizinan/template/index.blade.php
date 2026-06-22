@@ -16,9 +16,9 @@
             </div>
             @can('manage_perizinan')
             <div class="mt-3 mt-md-0">
-                <a href="{{ route('tenant.template-perizinan.upload') }}" class="btn btn-primary btn-round px-4 shadow">
+                <button type="button" class="btn btn-primary btn-round px-4 shadow" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
                     <i class="fas fa-plus-circle me-2"></i> Tambah Template
-                </a>
+                </button>
             </div>
             @endcan
         </div>
@@ -97,10 +97,15 @@
                                 <td class="text-end">
                                     <div class="d-flex justify-content-end gap-1">
                                         <button type="button" class="btn btn-icon btn-link btn-info" 
-                                                onclick="openPreview('{{ asset('storage/'.$template->file_pdf) }}', '{{ $template->nama }}', {{ json_encode($template->required_variables) }}, {{ $template->is_default ? 'true' : 'false' }}, '{{ route('tenant.template-perizinan.edit', $template->id) }}')"
+                                                onclick="openPreview('{{ asset('storage/'.$template->file_pdf) }}', '{{ $template->nama }}', {{ json_encode($template->required_variables) }}, {{ $template->is_default ? 'true' : 'false' }}, '{{ route('tenant.template-perizinan.edit', $template->id) }}', '{{ route('tenant.template-perizinan.print-blank', $template->id) }}')"
                                                 title="Detail Pratinjau">
                                             <i class="fa fa-eye"></i>
                                         </button>
+                                        <a href="{{ route('tenant.template-perizinan.print-blank', $template->id) }}" 
+                                           target="_blank"
+                                           class="btn btn-icon btn-link btn-dark" title="Cetak Template Kosong">
+                                            <i class="fa fa-print"></i>
+                                        </a>
                                         @can('manage_perizinan')
                                         <a href="{{ route('tenant.template-perizinan.edit', $template->id) }}" 
                                            class="btn btn-icon btn-link btn-primary" title="Ubah">
@@ -173,6 +178,10 @@
             <div class="modal-footer bg-light border-0 py-3">
                 <button type="button" class="btn btn-label-secondary btn-round px-4 fw-bold" data-bs-dismiss="modal">Tutup</button>
                 
+                <a href="#" id="modalPrintBlankBtn" target="_blank" class="btn btn-dark btn-round px-4 fw-bold text-white">
+                    <i class="fas fa-print me-2"></i>Cetak Kosong
+                </a>
+
                 <button type="button" onclick="printPdf()" class="btn btn-info btn-round px-4 fw-bold text-white">
                     <i class="fas fa-print me-2"></i>Cetak Template
                 </button>
@@ -182,6 +191,64 @@
                     <i class="fas fa-edit me-2"></i>Edit Struktur
                 </a>
                 @endcan
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL PILIHAN PEMBUATAN TEMPLATE --}}
+<div class="modal fade" id="createTemplateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header bg-primary-gradient py-3 px-4 border-0">
+                <div class="d-flex align-items-center">
+                    <div class="p-2 bg-white bg-opacity-25 rounded-circle me-3">
+                        <i class="fas fa-magic text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title text-white fw-bold mb-0">Tambah Template Baru</h5>
+                        <small class="text-white text-opacity-75" style="font-size: 11px;">Pilih metode pembuatan format surat izin</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4 bg-light">
+                <div class="row g-4">
+                    {{-- OPSI 1: HTML Canvas Editor --}}
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 shadow-sm hover-card" style="border-radius: 15px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; cursor: pointer;"
+                             onclick="window.location.href='{{ route('tenant.template-perizinan.create') }}'">
+                            <div class="card-body p-4 text-center">
+                                <div class="icon-box bg-soft-primary text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                    <i class="fas fa-edit fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Editor Kanvas (HTML)</h5>
+                                <p class="text-muted small mb-3">Desain surat izin dari nol menggunakan teks editor kaya (rich text). Sangat fleksibel dan mendukung pencetakan hemat kertas (A4, A5, A6).</p>
+                                <a href="{{ route('tenant.template-perizinan.create') }}" class="btn btn-primary btn-sm btn-round px-4">
+                                    Mulai Desain <i class="fas fa-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- OPSI 2: PDF Template Uploader --}}
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 shadow-sm hover-card" style="border-radius: 15px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; cursor: pointer;"
+                             onclick="window.location.href='{{ route('tenant.template-perizinan.upload') }}'">
+                            <div class="card-body p-4 text-center">
+                                <div class="icon-box bg-soft-info text-info rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                    <i class="fas fa-file-pdf fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Unggah Berkas PDF</h5>
+                                <p class="text-muted small mb-3">Unggah blanko surat PDF yang sudah ada dan posisikan kolom data tag (nama, nis, dll) secara visual di atas dokumen.</p>
+                                <a href="{{ route('tenant.template-perizinan.upload') }}" class="btn btn-info btn-sm btn-round px-4 text-white">
+                                    Unggah PDF <i class="fas fa-upload ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -200,6 +267,10 @@
     .btn-label-secondary:hover { background: #e2e5e8; }
     #modalVariableList::-webkit-scrollbar { width: 4px; }
     #modalVariableList::-webkit-scrollbar-thumb { background: #e9ecef; border-radius: 10px; }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    }
 </style>
 @endsection
 
@@ -229,11 +300,12 @@
         });
     });
 
-    function openPreview(pdfUrl, name, variables, isDefault, editUrl) {
+    function openPreview(pdfUrl, name, variables, isDefault, editUrl, printBlankUrl) {
         // Update Konten
         document.getElementById('modalTemplateName').innerText = name;
         document.getElementById('modalPdfFrame').src = pdfUrl + "#toolbar=0&navpanes=0";
         document.getElementById('modalEditBtn').href = editUrl;
+        document.getElementById('modalPrintBlankBtn').href = printBlankUrl;
         // Gunakan parameter #toolbar=1 agar fitur bawaan PDF browser muncul jika diperlukan
         document.getElementById('modalPdfFrame').src = pdfUrl + "#toolbar=1";
 

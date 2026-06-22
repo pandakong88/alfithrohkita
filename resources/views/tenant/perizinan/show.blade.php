@@ -10,6 +10,11 @@
         </div>
         <div class="ms-md-auto ml-md-auto py-2 py-md-0">
             <div class="d-flex flex-row align-items-center justify-content-md-end">
+                @if($perizinan->template && in_array($perizinan->template->source_type, ['html', 'upload_pdf']))
+                    <a href="{{ route('tenant.perizinan.print', $perizinan->id) }}" target="_blank" class="btn btn-primary btn-round mr-2 me-2">
+                        <i class="fa fa-print mr-2 me-2"></i> Cetak Surat Resmi
+                    </a>
+                @endif
                 <button onclick="window.print()" class="btn btn-dark btn-round mr-2 me-2">
                     <i class="fa fa-print mr-2 me-2"></i> Cetak Struk Saku
                 </button>
@@ -123,6 +128,83 @@
                     <p class="small op-8 mb-0 px-3">Scan untuk memproses kepulangan santri secara otomatis.</p>
                 </div>
             </div>
+
+            @php
+                $template = $perizinan->template;
+                $steps = $template && isset($template->rules['approval_workflow']) ? $template->rules['approval_workflow'] : [];
+                $currentStepIndex = $perizinan->current_step;
+                $approvalsMap = $perizinan->approvals->keyBy('step_index');
+            @endphp
+
+            @if(count($steps) > 0)
+            <div class="card card-round border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h5 class="card-title fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.85rem;">
+                        <i class="fas fa-stream text-primary me-2"></i> Alur Persetujuan
+                    </h5>
+                </div>
+                <div class="card-body pt-3 pb-3">
+                    <div class="timeline-workflow" style="position: relative; padding-left: 25px; margin-left: 5px;">
+                        <div style="position: absolute; left: 8px; top: 10px; bottom: 10px; width: 2px; background: #e2e8f0; z-index: 1;"></div>
+                        
+                        @foreach($steps as $step)
+                            @php
+                                $sIdx = (int)$step['step'];
+                                $isApproved = $approvalsMap->has($sIdx);
+                                $isCurrent = !$isApproved && ($sIdx === $currentStepIndex);
+                                $isBlocked = !$isApproved && ($sIdx > $currentStepIndex);
+                                $reqRole = $step['required_role'] ?? '';
+                                $user = auth()->user();
+                                $canApprove = $isCurrent && ($reqRole ? ($user->hasRole($reqRole) || $user->hasRole('admin_pondok') || $user->hasRole('super_admin')) : true);
+                            @endphp
+
+                            <div class="timeline-step mb-3" style="position: relative; z-index: 2;">
+                                {{-- Bullet Icon --}}
+                                <div style="position: absolute; left: -25px; top: 1px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold;
+                                            background: {{ $isApproved ? '#28a745' : ($isCurrent ? '#17a2b8' : '#e2e8f0') }};
+                                            color: {{ $isApproved || $isCurrent ? '#fff' : '#a0aec0' }};">
+                                    @if($isApproved) <i class="fas fa-check" style="font-size: 7px;"></i>
+                                    @else {{ $sIdx }}
+                                    @endif
+                                </div>
+
+                                {{-- Details --}}
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 13px;">{{ $step['name'] }}</h6>
+                                    @if($isApproved)
+                                        @php $appLog = $approvalsMap->get($sIdx); @endphp
+                                        <small class="text-success d-block" style="font-size: 10px; line-height: 1.2;">
+                                            Disetujui: {{ $appLog->user->name ?? 'User' }} <br>
+                                            Pada: {{ $appLog->created_at->format('d M H:i') }}
+                                        </small>
+                                    @elseif($isCurrent)
+                                        <span class="badge badge-info badge-xs rounded-pill text-white mt-1" style="font-size: 8px; padding: 1px 6px;">Langkah Aktif</span>
+                                        <small class="text-muted d-block mt-1" style="font-size: 10px;">
+                                            Otoritas: <b>{{ strtoupper(str_replace('_', ' ', $reqRole)) }}</b>
+                                        </small>
+
+                                        @if($canApprove)
+                                            <form method="POST" action="{{ route('tenant.perizinan.approve', $perizinan->id) }}" class="mt-2">
+                                                @csrf
+                                                <button type="submit" class="btn btn-info btn-xs btn-round fw-bold w-100 py-1" style="font-size: 10px;">
+                                                    <i class="fas fa-check-circle me-1"></i> Setujui Manual
+                                                </button>
+                                            </form>
+                                        @else
+                                            <small class="text-warning d-block mt-1" style="font-size: 9px; font-style: italic;">
+                                                <i class="fas fa-lock me-1"></i> Anda tidak memiliki wewenang.
+                                            </small>
+                                        @endif
+                                    @else
+                                        <small class="text-muted d-block mt-1" style="font-size: 10px;"><i class="fas fa-lock me-1"></i> Terkunci</small>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 

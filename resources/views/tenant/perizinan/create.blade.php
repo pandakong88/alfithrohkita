@@ -103,8 +103,16 @@ $(document).ready(function() {
         const container = $('#dynamicContainer');
         const inputDiv = $('#dynamicInputs');
 
+        // Normalize to array of keys
+        let variableKeys = [];
+        if (Array.isArray(variables)) {
+            variableKeys = variables;
+        } else if (variables && typeof variables === 'object') {
+            variableKeys = Object.keys(variables);
+        }
+
         // Jika tidak ada template dipilih, sembunyikan
-        if (!variables || variables.length === 0) {
+        if (variableKeys.length === 0) {
             container.fadeOut();
             inputDiv.empty();
             return;
@@ -114,24 +122,28 @@ $(document).ready(function() {
         if (santriId) {
             $.get(`{{ url('/dashboard/perizinan/santri-data') }}/${santriId}`, function(response) {
                 currentSantriData = response;
-                renderElements(variables, currentSantriData);
+                renderElements(variableKeys, currentSantriData);
             });
         } else {
-            renderElements(variables, null);
+            renderElements(variableKeys, null);
         }
     }
 
-    function renderElements(variables, data) {
+    function renderElements(variableKeys, data) {
         const inputDiv = $('#dynamicInputs');
         inputDiv.empty();
         $('#dynamicContainer').fadeIn();
 
-        variables.forEach(key => {
-            // Hindari render ulang field utama jika ada di variables database
-            const coreFields = ['tanggal_keluar', 'batas_kembali', 'keperluan'];
-            if (coreFields.includes(key)) return;
+        variableKeys.forEach(key => {
+            // Hindari render ulang field utama / auto-generated jika ada di variables database
+            const skipFields = ['tanggal_keluar', 'batas_kembali', 'keperluan', 'qr_code', 'kode_surat'];
+            if (skipFields.includes(key)) return;
 
-            let label = key.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            let cleanKey = key;
+            if (key.startsWith('custom_variables.')) {
+                cleanKey = key.replace('custom_variables.', '');
+            }
+            let label = cleanKey.replace(/[\._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             
             // Logic deep access (misal: 'wali.nama')
             let val = '';
@@ -142,7 +154,7 @@ $(document).ready(function() {
             let html = `
                 <div class="col-md-6 mb-3 animate__animated animate__fadeIn">
                     <label class="small fw-bold text-muted">${label}</label>
-                    <input type="text" name="variables[${key}]" value="${val}" class="form-control form-control-sm">
+                    <input type="text" name="variables[${key}]" value="${val}" class="form-control form-control-sm" required>
                 </div>
             `;
             inputDiv.append(html);

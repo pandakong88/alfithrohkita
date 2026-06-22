@@ -19,8 +19,10 @@ class TemplatePerizinan extends Model
         'nama',
         'slug',
         'deskripsi',
+        'source_type',
         'format_surat',
         'required_variables',
+        'rules',
         'file_pdf',
         'layout_print',
         'is_default',
@@ -32,7 +34,7 @@ class TemplatePerizinan extends Model
         'is_default' => 'boolean',
         'is_active' => 'boolean',
         'required_variables' => 'array',
-
+        'rules' => 'array',
     ];
 
     public function pondok()

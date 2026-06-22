@@ -12,6 +12,7 @@ class CreateTemplatePerizinanData
 
         // 🔥 core baru
         public array $required_variables = [],
+        public ?array $rules = [],
 
         // path file, bukan upload
         public ?string $file_pdf = null,
@@ -28,7 +29,8 @@ class CreateTemplatePerizinanData
             format_surat: $data['format_surat'] ?? null,
             layout_print: (int) ($data['layout_print'] ?? 4),
 
-            required_variables: array_values($data['required_variables'] ?? []),
+            required_variables: $data['required_variables'] ?? [],
+            rules: $data['rules'] ?? [],
 
             file_pdf: $data['file_pdf'] ?? null,
 

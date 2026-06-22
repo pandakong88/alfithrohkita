@@ -94,9 +94,62 @@
                             </div>
                         </div>
                     @endif
-
+ 
                     {{-- ACTION --}}
-                    @if($perizinan->status == 'aktif')
+                    @if($perizinan->status == 'pending')
+                        @php
+                            $template = $perizinan->template;
+                            $steps = $template && isset($template->rules['approval_workflow']) ? $template->rules['approval_workflow'] : [];
+                            $currentStepIndex = $perizinan->current_step;
+                            $currentStep = null;
+                            foreach ($steps as $st) {
+                                if (isset($st['step']) && (int)$st['step'] === $currentStepIndex) {
+                                    $currentStep = $st;
+                                    break;
+                                }
+                            }
+                            if (!$currentStep && !empty($steps[$currentStepIndex - 1])) {
+                                $currentStep = $steps[$currentStepIndex - 1];
+                            }
+                            $requiredRole = $currentStep ? ($currentStep['required_role'] ?? null) : null;
+                            $stepName = $currentStep ? ($currentStep['name'] ?? "Persetujuan Langkah {$currentStepIndex}") : '';
+                            $userHasRole = $requiredRole ? (auth()->user()->hasRole($requiredRole) || auth()->user()->hasRole('admin_pondok') || auth()->user()->hasRole('super_admin')) : true;
+                        @endphp
+
+                        @if($currentStep)
+                            <div class="text-center mb-4 p-3 bg-light rounded-4 border">
+                                <p class="text-muted small text-uppercase fw-bold mb-1" style="letter-spacing: 1px; font-size: 10px;">Tahapan Persetujuan Aktif</p>
+                                <h4 class="fw-bold text-info mb-1"><i class="fas fa-stream me-2"></i>{{ $stepName }}</h4>
+                                <span class="badge bg-soft-info text-info border px-3 mt-1" style="font-size: 9px;">Otoritas: {{ strtoupper(str_replace('_', ' ', $requiredRole)) }}</span>
+                            </div>
+
+                            @if($userHasRole)
+                                <form method="POST" action="{{ route('tenant.perizinan.approve', $perizinan->id) }}">
+                                    @csrf
+                                    <button type="submit" class="btn btn-confirm-modern bg-info text-white shadow-info" style="box-shadow: 0 10px 20px rgba(21, 114, 232, 0.2);">
+                                        <span>SETUJUI TAHAP INI</span>
+                                        <i class="fas fa-check-circle ms-2"></i>
+                                    </button>
+                                </form>
+                            @else
+                                <div class="alert alert-warning border-0 rounded-4 p-3 d-flex align-items-center mb-0" style="background: #fffbeb;">
+                                    <div class="icon-box me-3 bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                        <i class="fas fa-lock fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-warning" style="font-size: 12px;">Persetujuan Terkunci</h6>
+                                        <p class="mb-0 small text-warning opacity-75" style="font-size: 11px;">Hanya peran {{ strtoupper(str_replace('_', ' ', $requiredRole)) }} yang dapat menyetujui langkah ini.</p>
+                                    </div>
+                                </div>
+                            @endif
+                        @else
+                            <div class="p-4 rounded-4 bg-light border border-dashed text-center">
+                                <i class="fas fa-exclamation-circle text-warning mb-2 fa-lg"></i>
+                                <p class="text-muted small fw-bold text-uppercase mb-1">Status tidak sinkron</p>
+                                <h6 class="fw-bold text-dark mb-0">Langkah Persetujuan tidak ditemukan</h6>
+                            </div>
+                        @endif
+                    @elseif($perizinan->status == 'aktif')
                         <form method="POST" action="{{ route('tenant.perizinan.kembali', $perizinan->id) }}">
                             @csrf
                             <button type="submit" class="btn btn-confirm-modern">
@@ -112,7 +165,7 @@
                         </div>
                     @endif
                 </div>
-
+ 
                 {{-- FOOTER INFO --}}
                 <div class="card-footer bg-light border-0 p-4">
                     <div class="d-flex align-items-start">
@@ -124,9 +177,39 @@
                     </div>
                 </div>
             </div>
+
+            {{-- FAIL-SAFE MANUAL SEARCH ON SCAN PAGE --}}
+            <div class="card border-0 shadow-sm mt-4 p-4" style="border-radius: 24px;">
+                <div class="form-group p-0 m-0">
+                    <label class="small fw-bold text-muted mb-2"><i class="fas fa-keyboard me-1"></i> Scan / Ketik Kode Surat Lain</label>
+                    <div class="input-group">
+                        <input type="text" id="manualCodeSearch" class="form-control" placeholder="Contoh: IZN-20260609-ABCD" style="border-radius: 12px 0 0 12px;">
+                        <button class="btn btn-dark" type="button" onclick="performManualSearch()" style="border-radius: 0 12px 12px 0;"><i class="fa fa-search"></i></button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+    function performManualSearch() {
+        const val = document.getElementById('manualCodeSearch').value.trim();
+        if (val) {
+            window.location.href = `/dashboard/perizinan/scan/${val}`;
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('manualCodeSearch');
+        if (input) {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performManualSearch();
+                }
+            });
+        }
+    });
+</script>
 
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
